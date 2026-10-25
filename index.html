@@ -327,8 +327,8 @@
             <path d="M12 6h17l9 9v27H12z" fill="#fff"/><path d="M29 6v9h9"/><path d="M25 35V21M19 27l6-6 6 6"/>
           </svg>
           <span class="text-sm font-bold">파일을 끌어다 놓거나 클릭해서 선택</span>
-          <span class="text-[11px] text-mute">.txt · .md · .pdf · .docx → 본문 텍스트를 추출해 TEXT 탭에 넣습니다 (최대 20MB)</span>
-          <input id="fileInput" type="file" accept=".txt,.md,.markdown,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
+          <span class="text-[11px] text-mute">.txt · .md · .pdf · .docx · .hwpx → 본문 텍스트를 추출해 TEXT 탭에 넣습니다 (최대 20MB · HWPX 100MB)</span>
+          <input id="fileInput" type="file" accept=".txt,.md,.markdown,.pdf,.docx,.hwpx,.hwp,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden">
         </label>
         <div id="fileInfo" class="hidden flex items-center justify-between gap-3 rounded-full glass px-4 py-2 text-xs">
           <span id="fileName" class="truncate"></span>
@@ -409,9 +409,9 @@
       </div>
       <label id="bDrop" tabindex="0" class="drop flex flex-col items-center justify-center gap-1 py-6 rounded-2xl glass border-dashed cursor-pointer text-center px-4">
         <span class="text-sm font-bold">학생 레포트·제출 파일 불러오기 (여러 개)</span>
-        <span class="text-[11px] text-mute">.txt · .md · .pdf · .docx 레포트 또는 학생용 HTML에서 저장한 <b>제출_학번_성명.json</b></span>
+        <span class="text-[11px] text-mute">.txt · .md · .pdf · .docx · .hwpx 레포트 또는 학생용 HTML에서 저장한 <b>제출_학번_성명.json</b></span>
         <span class="text-[11px] text-mute">파일 이름이 "학번_성명"이면 학생 정보를 자동으로 읽습니다</span>
-        <input id="bFiles" type="file" multiple accept=".txt,.md,.markdown,.pdf,.docx,.json,application/json,text/plain,application/pdf" class="hidden">
+        <input id="bFiles" type="file" multiple accept=".txt,.md,.markdown,.pdf,.docx,.hwpx,.hwp,.json,application/json,text/plain,application/pdf" class="hidden">
       </label>
       <div class="flex flex-wrap gap-2">
         <button id="bSample" type="button" class="pill px-4 py-2 text-xs">예시 제출물 5건 불러오기</button>
@@ -553,11 +553,11 @@
     </div>
 
     <details class="glass-chip rounded-2xl p-4" id="rmImportBox">
-      <summary class="text-xs font-bold flex flex-wrap items-baseline gap-x-2 gap-y-0.5">🤖 루브릭 자동 입력 <span class="font-normal text-mute">— 텍스트 붙여넣기 · 파일(.txt .md .pdf .docx)</span></summary>
+      <summary class="text-xs font-bold flex flex-wrap items-baseline gap-x-2 gap-y-0.5">🤖 루브릭 자동 입력 <span class="font-normal text-mute">— 텍스트 붙여넣기 · 파일(.txt .md .pdf .docx .hwpx)</span></summary>
       <div class="mt-3 space-y-2">
         <textarea id="rmPaste" rows="5" class="field resize-y rounded-2xl leading-relaxed" placeholder="예)&#10;1. 논리성(5점): 주장과 근거의 연결&#10;2. 독창성(5점): 자기 관점의 참신함&#10;..."></textarea>
         <div class="flex flex-wrap items-center gap-2">
-          <label class="pill px-3 py-1.5 text-[11px]" tabindex="0">파일 선택 ↑<input id="rmFile" type="file" accept=".txt,.md,.markdown,.pdf,.docx" class="hidden"></label>
+          <label class="pill px-3 py-1.5 text-[11px]" tabindex="0">파일 선택 ↑<input id="rmFile" type="file" accept=".txt,.md,.markdown,.pdf,.docx,.hwpx,.hwp" class="hidden"></label>
           <button id="rmParse" type="button" class="pill pill-dark px-4 py-1.5 text-[11px]">AI로 읽어 채우기</button>
           <span id="rmFileName" class="text-[11px] text-mute truncate min-w-0"></span>
         </div>
@@ -632,6 +632,7 @@
 
 <script>
 // 화면·저장 파일에 표시되는 앱 버전. 수정할 때마다 올림: 새 기능 → 둘째 자리, 고침·디자인 → 셋째 자리
+// v1.5.0  한글(HWPX) 파일 읽기: 레포트 입력·일괄 채점·루브릭 자동 입력에서 .hwpx 지원(.hwp는 HWPX로 저장 안내)
 // v1.4.0  모델 빠른 선택: 제공자별 모델 버튼(OpenAI GPT-5·GPT-4.1·GPT-4o·o 시리즈 등)과 "내 키로 목록 불러오기"
 // v1.3.0  STEP 5 수업 배포·성적 관리: 학생용 HTML·제출 파일(JSON), 결과지 HWPX·PDF, 교수 일괄 채점(마스터 테이블·차트·CSV),
 //         학생별 점수·피드백 직접 수정(수정 표시), FEEDBACK HISTORY(열기·HTML·수정·삭제)
@@ -640,7 +641,7 @@
 //         수정안 적용·무시와 본문 강조, 피드백 강도·언어, 재채점 비교 차트
 // v1.1.0  STEP 2 AI 연결(Claude·OpenAI·Gemini, 연결 확인·모델 제안), JSON 재요청, 키 저장 설정, COURSE INFO 저장·내보내기
 // v1.0.0  STEP 1 기본 골격: 에세이 입력·실시간 통계, 레이더 차트·영역별 피드백·문장 수정 카드, 샘플 모드, 루브릭 모달
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.5.0';
 const BOOT = window.__BOOT__ || null;
 const STUDENT = BOOT?.mode === 'student';
 // 학생용 HTML을 만들 원본: 스크립트가 화면을 바꾸기 전에 문서를 그대로 복사
@@ -1168,7 +1169,7 @@ document.querySelectorAll('.tab-btn').forEach(b => {
   };
 });
 
-// ---------- 파일에서 텍스트 추출 (.txt .md .pdf .docx) ----------
+// ---------- 파일에서 텍스트 추출 (.txt .md .pdf .docx .hwpx) ----------
 const libs = {};
 function loadScript(src) {
   return libs[src] ||= new Promise((ok, fail) => {
@@ -1184,8 +1185,10 @@ const readAs = (file, how) => new Promise((ok, fail) => {
   how === 'text' ? r.readAsText(file, 'utf-8') : r.readAsArrayBuffer(file);
 });
 async function extractText(file) {
-  if (file.size > 20 * 1024 * 1024) throw new Error('20MB 이하 파일만 불러올 수 있습니다.');
   const ext = (file.name.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+  // HWPX는 그림이 들어 있어 커도 본문 XML만 읽으므로 한도를 넉넉히
+  const limit = ext === 'hwpx' ? 100 : 20;
+  if (file.size > limit * 1024 * 1024) throw new Error(`${limit}MB 이하 파일만 불러올 수 있습니다.`);
   if (ext === 'pdf' || file.type === 'application/pdf') {
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1209,8 +1212,58 @@ async function extractText(file) {
     const r = await mammoth.extractRawText({ arrayBuffer: await readAs(file, 'buffer') });
     return r.value.replace(/\n{3,}/g, '\n\n').trim();
   }
+  if (ext === 'hwpx') return hwpxText(await readAs(file, 'buffer'));
+  if (ext === 'hwp') throw new Error('예전 한글 형식(.hwp)은 읽을 수 없습니다. 한글에서 "다른 이름으로 저장 → HWPX"로 저장해 올려 주세요.');
   if (['txt', 'md', 'markdown', 'text', ''].includes(ext) || file.type.startsWith('text/')) return (await readAs(file, 'text')).trim();
-  throw new Error(`지원하지 않는 형식입니다(.${ext}). .txt · .md · .pdf · .docx 파일을 올려 주세요.`);
+  throw new Error(`지원하지 않는 형식입니다(.${ext}). .txt · .md · .pdf · .docx · .hwpx 파일을 올려 주세요.`);
+}
+
+// ---------- 한글(HWPX) 읽기: ZIP을 브라우저 기본 압축 해제로 풀고 Contents/section*.xml의 문단 글자를 모음 ----------
+async function unzipEntries(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('HWPX(ZIP) 형식이 아닙니다');
+  const count = dv.getUint16(eocd + 10, true), dec = new TextDecoder();
+  let p = dv.getUint32(eocd + 16, true);
+  const files = {};
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nlen));
+    const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+    files[name] = { method, data: u8.subarray(start, start + csize) };
+    p += 46 + nlen + xlen + clen;
+  }
+  // 반환: 이름으로 파일 글자를 읽는 함수 (.names = 들어 있는 파일 목록)
+  return Object.assign(async name => {
+    const f = files[name];
+    if (!f) return null;
+    if (f.method === 0) return dec.decode(f.data);
+    if (f.method !== 8 || typeof DecompressionStream === 'undefined') throw new Error('이 브라우저는 HWPX 압축 해제를 지원하지 않습니다(최신 크롬·엣지 사용)');
+    return new Response(new Blob([f.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }, { names: Object.keys(files) });
+}
+async function hwpxText(buf) {
+  const zip = await unzipEntries(buf);
+  const secs = zip.names.filter(n => /^Contents\/section\d+\.xml$/i.test(n)).sort((a, b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+  if (!secs.length) throw new Error('HWPX 안에서 본문(section)을 찾지 못했습니다');
+  const out = [];
+  for (const s of secs) {
+    const xml = new DOMParser().parseFromString(await zip(s), 'application/xml');
+    // 문단마다 자기 글자(hp:t)만 모음: 표 안 문단은 따로 한 줄로 나옴
+    for (const para of xml.getElementsByTagNameNS('*', 'p')) {
+      let line = '';
+      for (const t of para.getElementsByTagNameNS('*', 't')) {
+        let a = t.parentNode;
+        while (a && a.localName !== 'p') a = a.parentNode;
+        if (a === para) line += t.textContent;
+      }
+      out.push(line.replace(/\s+$/, ''));
+    }
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 $('fileInput').onchange = e => { if (e.target.files[0]) loadEssayFile(e.target.files[0]); e.target.value = ''; };
