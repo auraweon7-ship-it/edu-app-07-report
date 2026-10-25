@@ -414,7 +414,7 @@
         <input id="bFiles" type="file" multiple accept=".txt,.md,.markdown,.pdf,.docx,.hwpx,.hwp,.json,application/json,text/plain,application/pdf" class="hidden">
       </label>
       <div class="flex flex-wrap gap-2">
-        <button id="bSample" type="button" class="pill px-4 py-2 text-xs">예시 제출물 5건 불러오기</button>
+        <button id="bSample" type="button" class="pill px-4 py-2 text-xs">예시 제출물 6건 불러오기</button>
       </div>
       <p id="bNote" class="text-[11px] text-mute" role="status"></p>
     </div>
@@ -503,6 +503,7 @@
         <button id="bRun" type="button" class="pill pill-dark px-4 py-2 text-xs">일괄 채점 시작 ▶</button>
         <button id="bStop" type="button" class="pill px-4 py-2 text-xs hidden">중지 ■</button>
         <button id="bCsv" type="button" class="pill px-4 py-2 text-xs">CSV 다운로드 ↓</button>
+        <button id="bMailAll" type="button" class="pill px-4 py-2 text-xs" title="학생별 종합 피드백 메일 초안을 CSV로">메일 초안 전체 ↓</button>
         <button type="button" data-action="saveHistory" class="pill px-4 py-2 text-xs">히스토리 저장 ★</button>
         <button id="bClear" type="button" class="pill pill-danger px-4 py-2 text-xs">비우기</button>
       </div>
@@ -527,6 +528,87 @@
           <thead id="bHead"></thead>
           <tbody id="bBody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 표절·유사도 경고 -->
+    <div class="space-y-3">
+      <div class="sec-head justify-between flex-wrap gap-y-2">
+        <span>🚨 SIMILARITY <small>—— 학생 간 표절·유사도 경고</small></span>
+        <label class="flex items-center gap-2 text-[11px] font-medium text-ink">경고 기준
+          <input id="simTh" type="range" min="15" max="80" step="5" value="35" class="range !w-28 sm:!w-36 !my-0" aria-label="유사도 경고 기준(%)">
+          <b id="simThLabel" class="font-disp w-9 text-right">35%</b></label>
+      </div>
+      <div id="simSummary" class="text-xs"></div>
+      <div class="glass-chip rounded-2xl overflow-x-auto">
+        <table class="w-full text-xs tbl">
+          <thead><tr><th class="text-left">학생 A</th><th class="text-left">학생 B</th><th>유사도</th><th>같은 문장</th><th class="text-left">겹친 문장 예시</th><th>비교</th></tr></thead>
+          <tbody id="simBody"></tbody>
+        </table>
+      </div>
+      <p class="text-[10px] text-mute leading-4">유사도 = 띄어쓰기·문장 부호를 뺀 5글자 조각이 짧은 쪽 글에서 겹치는 비율. 같은 과제라 겹치는 표현도 있으니, 경고는 확인용이며 표절 판정은 원문을 비교해 교수가 직접 하세요.</p>
+    </div>
+
+    <!-- AI 점수 vs 교수 점수 -->
+    <div class="space-y-3">
+      <div class="sec-head">⚖️ AI vs PROFESSOR <small>—— AI 점수와 교수 점수 비교</small></div>
+      <div id="cmpStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      <div class="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div class="glass-chip rounded-2xl p-4 min-w-0">
+          <p class="text-xs font-bold mb-2">영역별 평균 차이 <span class="font-normal text-mute">(교수 − AI · 점)</span></p>
+          <div class="relative h-56"><canvas id="cCmp" role="img" aria-label="영역별 AI와 교수 점수 평균 차이"></canvas>
+            <p id="cmpEmpty" class="hidden absolute inset-0 grid place-items-center text-xs text-mute text-center px-4">교수가 점수를 고친 학생이 없습니다.<br>학생별 "상세·수정"에서 점수를 고치면 비교됩니다.</p></div>
+          <p id="cmpInsight" class="mt-2 text-[11px] leading-5"></p>
+        </div>
+        <div class="glass-chip rounded-2xl overflow-x-auto min-w-0">
+          <table class="w-full text-xs tbl"><thead id="cmpHead"></thead><tbody id="cmpBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 심화 분석 -->
+    <div class="space-y-4">
+      <div class="sec-head">🔍 DEEP ANALYSIS <small>—— 키워드 · 관계 · 강약점</small></div>
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="glass-chip rounded-2xl p-4 min-w-0 md:col-span-2">
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-2">
+            <p class="text-xs font-bold">키워드 워드클라우드 <span class="font-normal text-mute">— 크기 = 빈도 · 파랄수록 많은 학생이 사용</span></p>
+            <span id="wcInfo" class="text-[10px] text-mute"></span>
+          </div>
+          <div id="wordcloud" class="relative h-64 overflow-hidden" role="img" aria-label="학생 레포트 키워드 워드클라우드"></div>
+        </div>
+        <div class="glass-chip rounded-2xl p-4 min-w-0">
+          <p class="text-xs font-bold mb-2">과제 조건 충족률 <span class="font-normal text-mute">(% 학생)</span></p>
+          <div class="relative h-64"><canvas id="cReq" role="img" aria-label="과제 조건 충족률 막대 차트"></canvas><p id="reqEmpty" class="hidden absolute inset-0 grid place-items-center text-xs text-mute text-center">과제 조건이 없습니다<br>(루브릭 설정 → 과제 조건)</p></div>
+        </div>
+        <div class="glass-chip rounded-2xl p-4 min-w-0">
+          <p class="text-xs font-bold mb-2">글 길이 × 총점 <span id="corrInfo" class="font-normal text-mute"></span></p>
+          <div class="relative h-56"><canvas id="cScatter" role="img" aria-label="글자 수와 총점 산점도"></canvas></div>
+        </div>
+        <div class="glass-chip rounded-2xl p-4 min-w-0">
+          <p class="text-xs font-bold mb-2">영역별 점수 구간 <span class="font-normal text-mute">(배점 대비)</span></p>
+          <div class="relative h-56"><canvas id="cStack" role="img" aria-label="영역별 점수 구간 누적 막대 차트"></canvas></div>
+        </div>
+        <div class="glass-chip rounded-2xl p-4 min-w-0">
+          <p class="text-xs font-bold mb-2">영역 간 상관 <span class="font-normal text-mute">— 함께 오르내리는 영역</span></p>
+          <div id="corrMap" class="overflow-x-auto"></div>
+          <p class="mt-2 text-[10px] text-mute leading-4">r = 피어슨 상관계수. 1에 가까울수록 한 영역이 높은 학생은 다른 영역도 높습니다.</p>
+        </div>
+        <div class="glass-chip rounded-2xl p-4 min-w-0 md:col-span-3">
+          <p class="text-xs font-bold mb-2">학생 × 영역 히트맵 <span class="font-normal text-mute">— 총점 높은 순 · 진할수록 높은 점수</span></p>
+          <div id="heatMap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-sm font-bold">💡 가장 독창적인 관점 TOP 5</p>
+            <p id="origMode" class="text-[11px] text-mute"></p>
+          </div>
+          <button id="origAI" type="button" class="pill pill-dark px-4 py-2 text-xs">AI로 독창성 심층 분석 ✦</button>
+        </div>
+        <div id="origList" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"></div>
+        <p id="origNote" class="text-[11px] text-mute" role="status"></p>
       </div>
     </div>
     <p class="text-center text-[11px] text-mute">ⓘ AI 평가는 참고 자료이며 최종 판단은 교수자가 합니다</p>
@@ -618,6 +700,7 @@
       <div class="flex flex-wrap gap-2">
         <button type="button" data-row-action="hwpx" class="pill px-4 py-2 text-xs">결과지 HWPX ↓</button>
         <button type="button" data-row-action="pdf" class="pill px-4 py-2 text-xs">결과지 PDF ⎙</button>
+        <button type="button" data-row-action="mail" class="pill px-4 py-2 text-xs">메일 초안 ✉</button>
         <button type="button" data-row-action="revert" class="pill pill-danger px-4 py-2 text-xs">AI 원래 값으로</button>
       </div>
       <div class="flex gap-2">
@@ -628,10 +711,67 @@
   </div>
 </div>
 
+<!-- 유사도 비교 모달 -->
+<div id="simModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="simTitle">
+  <div class="modal-panel !max-w-6xl glass rounded-[2rem] p-5 sm:p-8 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div class="sec-head w-fit">🚨 SIMILARITY <small>—— 원문 나란히 비교</small></div>
+        <h2 id="simTitle" class="mt-3 text-lg font-bold break-words"></h2>
+        <p class="text-[11px] text-mute"><mark class="rounded px-1 bg-[rgba(208,84,74,.18)]">빨간 칸</mark> = 두 글에 거의 같게 나오는 문장</p>
+      </div>
+      <button type="button" data-close class="pill w-9 h-9 shrink-0 text-base" aria-label="닫기">×</button>
+    </div>
+    <div class="grid gap-3 md:grid-cols-2">
+      <div class="sunk rounded-2xl p-4 min-w-0"><p id="simNameA" class="text-xs font-bold mb-2"></p><div id="simTextA" class="text-sm leading-7 whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto"></div></div>
+      <div class="sunk rounded-2xl p-4 min-w-0"><p id="simNameB" class="text-xs font-bold mb-2"></p><div id="simTextB" class="text-sm leading-7 whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 메일 피드백 초안 모달 -->
+<div id="mailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mailTitle">
+  <div class="modal-panel glass rounded-[2rem] p-5 sm:p-8 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div class="sec-head w-fit">✉️ MAIL DRAFT <small>—— 학생에게 보낼 종합 피드백</small></div>
+        <h2 id="mailTitle" class="mt-3 text-lg font-bold break-words"></h2>
+        <p id="mailSub" class="text-[11px] text-mute"></p>
+      </div>
+      <button type="button" data-close class="pill w-9 h-9 shrink-0 text-base" aria-label="닫기">×</button>
+    </div>
+    <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <label class="block min-w-0"><span class="block text-[11px] font-bold mb-1">받는 사람 이메일 <span class="font-normal text-mute">(선택 · 메일 앱으로 열 때 사용)</span></span>
+        <input id="mailTo" type="email" class="field" placeholder="student@hufs.ac.kr" autocomplete="off"></label>
+      <div class="flex items-end gap-2">
+        <button id="mailPrev" type="button" class="pill px-3 py-2.5 text-xs" aria-label="이전 학생">◀ 이전</button>
+        <button id="mailNext" type="button" class="pill px-3 py-2.5 text-xs" aria-label="다음 학생">다음 ▶</button>
+      </div>
+    </div>
+    <label class="block"><span class="block text-[11px] font-bold mb-1">제목</span><input id="mailSubject" class="field"></label>
+    <label class="block"><span class="block text-[11px] font-bold mb-1">본문 <span class="font-normal text-mute">— 자유롭게 고친 뒤 복사하거나 메일 앱으로 여세요</span></span>
+      <textarea id="mailBody" rows="16" class="field resize-y rounded-2xl text-sm leading-7"></textarea></label>
+    <p id="mailNote" class="text-[11px] text-mute" role="status"></p>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap gap-2">
+        <button id="mailRule" type="button" class="pill px-4 py-2 text-xs">기본 초안 다시 만들기</button>
+        <button id="mailAI" type="button" class="pill px-4 py-2 text-xs">AI로 다듬기 ✦</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="mailCopy" type="button" class="pill px-4 py-2 text-xs">복사 ⧉</button>
+        <button id="mailOpen" type="button" class="pill px-4 py-2 text-xs">메일 앱으로 열기 ↗</button>
+        <button id="mailSave" type="button" class="pill pill-dark px-5 py-2 text-xs">초안 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="hidden fixed z-[70] bottom-5 left-1/2 -translate-x-1/2 glass rounded-full px-5 py-2.5 text-xs font-medium max-w-[calc(100%-2rem)] text-center" role="status"></div>
 
 <script>
 // 화면·저장 파일에 표시되는 앱 버전. 수정할 때마다 올림: 새 기능 → 둘째 자리, 고침·디자인 → 셋째 자리
+// v1.7.0  AI 점수 vs 교수 점수 비교(영역별 평균 차이·일치율·학생별 표), 표절·유사도 경고(5글자 조각 겹침·같은 문장 비교 창), 학생별 종합 피드백 메일 초안(기본·AI 다듬기·복사·메일 앱·CSV)
+// v1.6.0  일괄 채점 심화 분석: 키워드 워드클라우드, 과제 조건 충족률, 글 길이×총점(상관), 영역별 점수 구간, 영역 간 상관·학생×영역 히트맵, 독창적 관점 TOP 5(규칙·AI)
 // v1.5.0  한글(HWPX) 파일 읽기: 레포트 입력·일괄 채점·루브릭 자동 입력에서 .hwpx 지원(.hwp는 HWPX로 저장 안내)
 // v1.4.0  모델 빠른 선택: 제공자별 모델 버튼(OpenAI GPT-5·GPT-4.1·GPT-4o·o 시리즈 등)과 "내 키로 목록 불러오기"
 // v1.3.0  STEP 5 수업 배포·성적 관리: 학생용 HTML·제출 파일(JSON), 결과지 HWPX·PDF, 교수 일괄 채점(마스터 테이블·차트·CSV),
@@ -641,7 +781,7 @@
 //         수정안 적용·무시와 본문 강조, 피드백 강도·언어, 재채점 비교 차트
 // v1.1.0  STEP 2 AI 연결(Claude·OpenAI·Gemini, 연결 확인·모델 제안), JSON 재요청, 키 저장 설정, COURSE INFO 저장·내보내기
 // v1.0.0  STEP 1 기본 골격: 에세이 입력·실시간 통계, 레이더 차트·영역별 피드백·문장 수정 카드, 샘플 모드, 루브릭 모달
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.7.0';
 const BOOT = window.__BOOT__ || null;
 const STUDENT = BOOT?.mode === 'student';
 // 학생용 HTML을 만들 원본: 스크립트가 화면을 바꾸기 전에 문서를 그대로 복사
@@ -2099,11 +2239,13 @@ const SAMPLE_STUDENTS = [
   ['202611017', '이준호', '중국학과', `AI 쓰면 안 된다\n\nAI로 과제하면 진짜 편하긴 한데 그래도 안 좋은거 같다. 왜냐면 생각을 안 하게 되기 때문이다. 친구들도 다 AI 쓰는데 그러면 실력이 안 늘어요. 그래서 대학은 AI를 금지해야 된다고 생각한다. 솔직히 교수님들도 다 알거다.`],
   ['202611008', '박지민', '중국언어문화학과', `대학 교육에서 생성형 AI 활용의 조건\n\n생성형 AI의 확산은 글쓰기 교육에 기회와 위험을 함께 가져왔다. 본 글은 AI 활용이 교육적으로 정당화되기 위한 조건을 검토한다.\n\n먼저 AI는 초안 작성의 부담을 줄여 학생이 논증 구조에 집중하게 한다. 예를 들어 [출처]의 연구는 AI 피드백을 받은 학생 집단의 수정 횟수가 증가했다고 보고했다. 반면 무비판적 사용은 표절과 사고력 저하로 이어질 수 있다. 따라서 활용 과정을 기록하고 성찰문을 제출하게 하는 평가 설계가 필요하다.\n\n결론적으로 AI 활용의 교육적 가치는 도구 자체가 아니라 그것을 둘러싼 수업 설계에 달려 있다.`],
   ['202611021', '최유나', '중국학과', `AI 시대의 글쓰기\n\nAI는 편리하다. 많은 학생들이 AI를 사용한다. 그러나 AI는 틀린 정보를 줄수도 있다. 그래서 확인이 필요하다. 대학은 AI 사용법을 가르쳐야 한다. 예를들어 수업에서 AI 결과를 같이 검토할 수 있다. 이렇게 하면 학생들이 더 잘 쓸것이다.`],
-  ['202611012', '정민수', '중국언어문화학과', `생성형 AI 활용 교육의 필요성\n\n최근 생성형 AI의 활용이 대학가에서 빠르게 확산되고 있다. 이에 따라 대학 글쓰기 교육도 변화가 요구된다. 첫째, AI는 자료 탐색의 효율을 높인다. 둘째, AI의 오류 가능성은 정보 검증 교육의 필요성을 보여 준다. 다만 구체적인 사례와 통계가 더 보완되어야 할 것이다. 따라서 대학은 AI 리터러시 교육을 교양 과정에 포함해야 한다.`]
+  ['202611012', '정민수', '중국언어문화학과', `생성형 AI 활용 교육의 필요성\n\n최근 생성형 AI의 활용이 대학가에서 빠르게 확산되고 있다. 이에 따라 대학 글쓰기 교육도 변화가 요구된다. 첫째, AI는 자료 탐색의 효율을 높인다. 둘째, AI의 오류 가능성은 정보 검증 교육의 필요성을 보여 준다. 다만 구체적인 사례와 통계가 더 보완되어야 할 것이다. 따라서 대학은 AI 리터러시 교육을 교양 과정에 포함해야 한다.`],
+  // 유사도 경고 시연용: 김서연의 글을 일부 고쳐 옮긴 글
+  ['202611025', '한도윤', '중국학과', `AI 시대 대학 글쓰기의 방향\n\n생성형 AI는 대학 글쓰기 교육의 방식을 바꾸고 있다. 교육부의 [연도] 조사에 따르면 대학생 다수가 과제에 AI를 활용한 경험이 있다고 답했다. 그러므로 대학은 AI 사용을 금지하기보다 비판적 활용 능력을 가르쳐야 한다.\n\n첫째, AI는 개요 작성 단계에서 사고를 확장하는 도구가 될 수 있다. 그러나 AI가 제시한 내용은 사실 여부를 반드시 검증해야 한다. 둘째, 출처를 밝히는 습관은 AI 시대에 더욱 중요해졌다. 결론적으로 대학은 AI를 보조 도구로 활용하는 글쓰기 윤리 교육을 강화해야 한다.`]
 ];
 $('bSample').onclick = () => {
   SAMPLE_STUDENTS.forEach(([sid, name, dept, text]) => batchRows.push({ uid: uid(), file: `${sid}_${name}.txt`, sid, name, dept, text, source: 'file', status: '대기', result: null, ai: null, edits: {} }));
-  $('bNote').textContent = '예시 제출물 5건을 불러왔습니다. "일괄 채점 시작"을 누르세요.';
+  $('bNote').textContent = '예시 제출물 6건을 불러왔습니다. "일괄 채점 시작"을 누르세요.';
   renderBatch();
   $('batch').scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
@@ -2182,11 +2324,14 @@ function renderBatch() {
   $('batch').classList.toggle('hidden', !batchRows.length);
   if (!batchRows.length) return;
   $('bTitle').textContent = [course.course, course.title].filter(Boolean).join(' · ') || '일괄 채점';
+  computeSimilarity();
   renderBatchTable();
   renderBatchStats();
+  renderSimilarity();
+  renderCompare();
 }
 function renderBatchTable() {
-  const crit = rubric.criteria;
+  const crit = rubric.criteria, flagged = flaggedUids();
   $('bHead').innerHTML = `<tr><th class="text-left">학번</th><th class="text-left">성명</th><th class="text-left">학과</th><th class="text-left">핵심 주장 · 키워드</th>
     ${crit.map(c => `<th title="${esc(c.desc)}">${esc(c.name)}<span class="block text-[10px] font-normal">/${fmt(c.max)}${c.weight !== 1 ? ` ×${fmt(c.weight)}` : ''}</span></th>`).join('')}
     <th>총점</th><th>등급</th><th>상태</th><th>관리</th></tr>`;
@@ -2203,8 +2348,9 @@ function renderBatchTable() {
       ${crit.map(c => `<td class="text-center font-disp ${e.scores?.[c.id] ? 'edited' : ''}">${res && res.scores[c.id] != null ? fmt(res.scores[c.id]) : '—'}</td>`).join('')}
       <td class="text-center font-disp font-bold whitespace-nowrap ${Object.values(e.scores || {}).some(Boolean) ? 'edited' : ''}">${t != null ? `${fmt(t)}<span class="text-mute font-normal">/${fmt(mx)}</span>` : '—'}</td>
       <td class="text-center font-disp">${t != null ? gradeOf(t / mx * 100) : '—'}</td>
-      <td class="text-center whitespace-nowrap"><span class="${stCls} rounded-full px-2 py-0.5 text-[10px] font-bold" title="${esc(r.error || '')}">${r.status === '채점 중' ? '⏳ ' : ''}${esc(r.status)}${r.sample ? '·샘플' : ''}</span>${Object.keys(e).length && (e.summary || e.claim || Object.values(e.scores || {}).some(Boolean) || Object.values(e.fb || {}).some(Boolean)) ? '<span class="block mt-1 text-[10px] edited">교수 수정</span>' : ''}</td>
+      <td class="text-center whitespace-nowrap"><span class="${stCls} rounded-full px-2 py-0.5 text-[10px] font-bold" title="${esc(r.error || '')}">${r.status === '채점 중' ? '⏳ ' : ''}${esc(r.status)}${r.sample ? '·샘플' : ''}</span>${Object.keys(e).length && (e.summary || e.claim || Object.values(e.scores || {}).some(Boolean) || Object.values(e.fb || {}).some(Boolean)) ? '<span class="block mt-1 text-[10px] edited">교수 수정</span>' : ''}${flagged.has(r.uid) ? '<span class="block mt-1 text-[10px] font-bold text-[#9a3027]" title="SIMILARITY 표에서 확인">⚠ 유사 글</span>' : ''}</td>
       <td class="whitespace-nowrap text-center"><button type="button" data-open="${r.uid}" class="pill px-2.5 py-1 text-[11px]" ${res ? '' : 'disabled'}>상세·수정</button>
+        <button type="button" data-mail="${r.uid}" class="pill px-2.5 py-1 text-[11px]" ${res ? '' : 'disabled'} title="종합 피드백 메일 초안" aria-label="메일 초안">✉</button>
         <button type="button" data-regrade="${r.uid}" class="pill px-2.5 py-1 text-[11px]" ${batchRunning ? 'disabled' : ''} title="이 학생만 다시 채점">↺</button>
         <button type="button" data-remove="${r.uid}" class="pill pill-danger px-2.5 py-1 text-[11px]" aria-label="목록에서 빼기" ${batchRunning ? 'disabled' : ''}>×</button></td>
     </tr>`;
@@ -2213,9 +2359,10 @@ function renderBatchTable() {
 $('bBody').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
-  const row = batchRows.find(r => r.uid === (b.dataset.open || b.dataset.regrade || b.dataset.remove));
+  const row = batchRows.find(r => r.uid === (b.dataset.open || b.dataset.regrade || b.dataset.remove || b.dataset.mail));
   if (!row) return;
   if (b.dataset.open) openRow(row);
+  else if (b.dataset.mail) openMail(row);
   else if (b.dataset.regrade) { row.status = '대기'; runBatch(); }
   else if (b.dataset.remove) { batchRows = batchRows.filter(r => r !== row); renderBatch(); }
 });
@@ -2249,7 +2396,400 @@ function renderBatchStats() {
   charts.avg = new Chart($('cAvg'), { type: 'radar', data: { labels: crit.map(c => c.name), datasets: [{ data: avgs, borderColor: ACC, backgroundColor: ACC_A(.16), pointBackgroundColor: ACC, borderWidth: 2 }] },
     options: { ...base, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `평균 ${c.raw}%` } } },
       scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { color: 'rgba(0,0,0,.09)' }, angleLines: { color: 'rgba(0,0,0,.09)' }, pointLabels: { font: { size: 10, weight: 600 }, color: '#1d1d1f' } } } } });
+  renderDeep(rows);
 }
+// ---------- 심화 분석: 워드클라우드 · 조건 충족 · 길이×점수 · 점수 구간 · 영역 상관 · 히트맵 · 독창적 관점 ----------
+const STOP = new Set(('그리고 그러나 따라서 그래서 하지만 또한 이러한 이런 그런 저런 것이다 있다 없다 한다 된다 같은 위해 대한 통해 때문 경우 우리 이것 그것 ' +
+  '가장 매우 많은 정말 진짜 솔직히 엄청 이번 첫째 둘째 셋째 넷째 결론적으로 예를 들어 생각 생각한다 사람 사람들 자신 이를 이에 있는 없는 하는 되는 ' +
+  '것은 것을 것이 것도 수도 등을 등의 바로 다른 모든 어떤 함께 먼저 다만 또는 그러므로 이렇게 그렇게 때문이다 있으며 있고 있을 없이 반드시 결국 ' +
+  '이다 이며 하고 하며 해야 한다고 된다고 있다고 것으로 것이라 수있다 한데 그래 그런데 근데 예를들어 왜냐면 왜냐하면 그러면 이렇게 the and of to in is that for are with').split(' '));
+const JOSA = /(으로써|으로서|에서는|에게서|이라는|이라고|으로는|으로|에서|에게|까지|부터|처럼|보다|라는|라고|하는|하고|하며|하여|해야|했다|한다|된다|이다|입니다|에는|에도|와의|과의|들의|들은|들이|들을|은|는|이|가|을|를|의|에|와|과|도|만|로|들)$/;
+// 동사·형용사 활용형(명사가 아닌 말)은 제외
+const VERBY = /(하면|되면|으면|쓰면|보면|하긴|하게|하고|하며|해서|하기|하다|된다|한다|했다|있다|없다|같다|해요|돼요|되요|거다|는데|은데|지만|면서|려고|도록|하지|않은|않다|싶다|좋은|안 좋은|겠다|된|할|될|줄수|할수|쓸것|은거|는거|한거|인거|던거)$/;
+// 간단 형태소 처리: 조사·어미를 떼고 2글자 이상 명사형만
+function terms(text) {
+  return (String(text || '').match(/[가-힣]{2,}|[A-Za-z][A-Za-z0-9-]+/g) || []).map(w => {
+    let t = w;
+    for (let i = 0; i < 2; i++) { const s = t.replace(JOSA, ''); if (s.length >= 2 && s !== t) t = s; else break; }
+    return t;
+  }).filter(t => t.length >= 2 && !STOP.has(t) && !STOP.has(t.toLowerCase()) && !VERBY.test(t));
+}
+function pearson(a, b) {
+  const n = a.length;
+  if (n < 3) return null;
+  const ma = a.reduce((x, y) => x + y, 0) / n, mb = b.reduce((x, y) => x + y, 0) / n;
+  let s = 0, sa = 0, sb = 0;
+  for (let i = 0; i < n; i++) { const da = a[i] - ma, db = b[i] - mb; s += da * db; sa += da * da; sb += db * db; }
+  return sa && sb ? s / Math.sqrt(sa * sb) : null;
+}
+function drawWordCloud(rows) {
+  const box = $('wordcloud');
+  box.innerHTML = '';
+  const freq = new Map(), df = new Map();
+  rows.forEach(r => {
+    const kw = (r.result?.keywords || []).flatMap(terms), seen = new Set();
+    [...terms(r.text), ...kw, ...kw].forEach(t => { freq.set(t, (freq.get(t) || 0) + 1); seen.add(t); }); // AI 키워드는 가중
+    seen.forEach(t => df.set(t, (df.get(t) || 0) + 1));
+  });
+  const words = [...freq].sort((a, b) => b[1] - a[1]).slice(0, 70);
+  if (!words.length) { box.innerHTML = '<p class="absolute inset-0 grid place-items-center text-xs text-mute">분석할 단어가 없습니다</p>'; $('wcInfo').textContent = ''; return; }
+  const W = box.clientWidth, H = box.clientHeight, max = words[0][1], min = words[words.length - 1][1], n = rows.length;
+  const ctx = document.createElement('canvas').getContext('2d'), placed = [];
+  let html = '';
+  words.forEach(([t, f], i) => {
+    const size = Math.round(11 + ((f - min) / (max - min || 1)) ** 0.75 * (W < 420 ? 22 : 36));
+    const weight = i < 10 ? 700 : 500;
+    ctx.font = `${weight} ${size}px Inter, "Noto Sans KR", sans-serif`;
+    const w = Math.ceil(ctx.measureText(t).width) + 8, h = Math.ceil(size * 1.2);
+    // 가운데에서 바깥으로 타원 나선을 따라 빈자리를 찾음
+    for (let k = 0; k < 1200; k++) {
+      const a = k * 0.3, rad = 1.8 * a;
+      const x = W / 2 + rad * Math.cos(a) * 1.6 - w / 2, y = H / 2 + rad * Math.sin(a) * 0.8 - h / 2;
+      if (x < 0 || y < 0 || x + w > W || y + h > H) continue;
+      if (placed.some(p => x < p.x + p.w && x + w > p.x && y < p.y + p.h && y + h > p.y)) continue;
+      placed.push({ x, y, w, h });
+      const share = df.get(t) / n;
+      const color = n > 1 && share >= .6 ? 'rgb(47,123,246)' : n > 1 && share >= .3 ? 'rgba(47,123,246,.68)' : df.get(t) > 1 ? 'rgb(100,100,107)' : 'rgb(150,150,156)';
+      html += `<span class="absolute whitespace-nowrap leading-none select-none cursor-default" style="left:${Math.round(x + 4)}px;top:${Math.round(y + (h - size) / 2)}px;font:${weight} ${size}px Inter,'Noto Sans KR',sans-serif;color:${color}" title="${esc(t)} · ${f}회 · 학생 ${df.get(t)}명">${esc(t)}</span>`;
+      break;
+    }
+  });
+  box.innerHTML = html;
+  $('wcInfo').textContent = `상위 ${placed.length}개 단어 · 학생 ${n}명`;
+}
+function renderDeep(rows) {
+  const crit = rubric.criteria, base = { responsive: true, maintainAspectRatio: false, animation: { duration: 400 } };
+  drawWordCloud(rows);
+  // 과제 조건 충족률
+  const req = rubric.req, reqLabels = [];
+  if (req.minChars || req.maxChars) reqLabels.push('글자 수');
+  req.keywords.forEach(k => reqLabels.push('#' + k));
+  const reqData = reqLabels.map((_, i) => rows.length ? Math.round(rows.filter(r => reqStatus(r.text)[i]?.ok).length / rows.length * 100) : 0);
+  $('reqEmpty').classList.toggle('hidden', !!reqLabels.length);
+  charts.req?.destroy();
+  charts.req = reqLabels.length ? new Chart($('cReq'), { type: 'bar', data: { labels: reqLabels, datasets: [{ data: reqData, backgroundColor: reqData.map(v => v >= 80 ? ACC : v >= 50 ? ACC_A(.55) : 'rgb(150,150,157)'), borderRadius: 6, maxBarThickness: 22 }] },
+    options: { ...base, indexAxis: 'y', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `충족 ${c.raw}%` } } },
+      scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } } } }) : null;
+  // 글 길이 × 총점
+  const pts = rows.map(r => ({ x: [...r.text].length, y: round1(totalOf(r.result)), who: `${r.sid} ${r.name}` }));
+  const rr = pearson(pts.map(p => p.x), pts.map(p => p.y));
+  $('corrInfo').textContent = rr == null ? '' : `— r = ${rr.toFixed(2)}${Math.abs(rr) >= .5 ? (rr > 0 ? ' (길수록 높음)' : ' (길수록 낮음)') : ' (관계 약함)'}`;
+  charts.scatter?.destroy();
+  charts.scatter = new Chart($('cScatter'), { type: 'scatter', data: { datasets: [{ data: pts, backgroundColor: ACC_A(.75), pointRadius: 5, pointHoverRadius: 7 }] },
+    options: { ...base, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw.who}: ${c.raw.x.toLocaleString()}자 · ${fmt(c.raw.y)}점` } } },
+      scales: { x: { title: { display: true, text: '글자 수(공백 포함)', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.06)' } },
+        y: { min: 0, max: rubricMax(), title: { display: true, text: '총점', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.06)' } } } } });
+  // 영역별 점수 구간 (100% 누적)
+  const BANDS = [['미흡 <40%', 'rgb(76,76,82)'], ['보통 이하 40–59%', 'rgb(160,160,166)'], ['보통 60–79%', 'rgba(47,123,246,.5)'], ['우수 80%+', 'rgb(47,123,246)']];
+  const band = p => p < 40 ? 0 : p < 60 ? 1 : p < 80 ? 2 : 3;
+  charts.stack?.destroy();
+  charts.stack = new Chart($('cStack'), { type: 'bar',
+    data: { labels: crit.map(c => c.name), datasets: BANDS.map(([label, color], b) => ({ label, backgroundColor: color, maxBarThickness: 20,
+      data: crit.map(c => { const v = rows.filter(r => r.result.scores[c.id] != null); return v.length ? Math.round(v.filter(r => band(r.result.scores[c.id] / c.max * 100) === b).length / v.length * 100) : 0; }) })) },
+    options: { ...base, indexAxis: 'y', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, font: { size: 9 } } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw}%` } } },
+      scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,.06)' } }, y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } } } } });
+  // 영역 간 상관 히트맵
+  const col = c => rows.map(r => r.result.scores[c.id] ?? 0);
+  const cell = r => r == null ? '<td class="text-center text-mute">—</td>'
+    : `<td class="text-center font-disp" style="background:${r >= 0 ? `rgba(47,123,246,${(Math.abs(r) * .7).toFixed(2)})` : `rgba(90,90,96,${(Math.abs(r) * .5).toFixed(2)})`};color:${Math.abs(r) > .55 ? '#fff' : 'inherit'}">${r.toFixed(2)}</td>`;
+  $('corrMap').innerHTML = rows.length < 3 ? '<p class="text-xs text-mute py-6 text-center">학생이 3명 이상이면 계산합니다</p>'
+    : `<table class="w-full text-[11px] tbl"><thead><tr><th></th>${crit.map(c => `<th class="!px-1.5" title="${esc(c.name)}">${esc(c.name.slice(0, 4))}</th>`).join('')}</tr></thead>
+      <tbody>${crit.map((a, i) => `<tr><th class="text-left !px-1.5" title="${esc(a.name)}">${esc(a.name.slice(0, 4))}</th>${crit.map((b, j) => i === j ? '<td class="text-center text-mute">1</td>' : cell(pearson(col(a), col(b)))).join('')}</tr>`).join('')}</tbody></table>`;
+  // 학생 × 영역 히트맵
+  const sorted = [...rows].sort((a, b) => totalOf(b.result) - totalOf(a.result));
+  $('heatMap').innerHTML = `<table class="w-full text-[11px] tbl"><thead><tr><th class="text-left">학생</th>${crit.map(c => `<th title="${esc(c.desc)}">${esc(c.name)}</th>`).join('')}<th>총점</th></tr></thead><tbody>
+    ${sorted.map(r => `<tr><td class="whitespace-nowrap"><b>${esc(r.name || r.file)}</b> <span class="text-mute font-disp">${esc(r.sid)}</span></td>
+      ${crit.map(c => { const s = r.result.scores[c.id], p = s == null ? 0 : s / c.max; return `<td class="text-center font-disp" style="background:rgba(47,123,246,${(p * .8).toFixed(2)});color:${p > .6 ? '#fff' : 'inherit'}">${s == null ? '—' : fmt(s)}</td>`; }).join('')}
+      <td class="text-center font-disp font-bold">${fmt(totalOf(r.result))}</td></tr>`).join('')}</tbody></table>`;
+  renderOriginality(rows);
+}
+
+// 독창적 관점: 반 전체와 다른 단어·논점을 쓴 정도(TF-IDF 코사인 거리, 핵심 주장·키워드 가중)
+//            + 루브릭의 독창성 영역 점수 + 총점(논증이 성립하지 않는 낯선 글이 뽑히지 않게)
+function originality(rows) {
+  const docs = rows.map(r => {
+    const tf = new Map(), focus = [...terms(r.result.claim), ...(r.result.keywords || []).flatMap(terms)];
+    [...terms(r.text), ...focus, ...focus].forEach(t => tf.set(t, (tf.get(t) || 0) + 1));
+    return tf;
+  });
+  const N = docs.length, df = new Map();
+  docs.forEach(d => d.forEach((_, t) => df.set(t, (df.get(t) || 0) + 1)));
+  const vec = docs.map(d => { const v = new Map(); d.forEach((c, t) => v.set(t, (1 + Math.log(c)) * Math.log((N + 1) / df.get(t)))); return v; });
+  const norms = vec.map(v => Math.sqrt([...v.values()].reduce((a, x) => a + x * x, 0)) || 1);
+  const cos = (i, j) => { let s = 0; vec[i].forEach((x, t) => { const y = vec[j].get(t); if (y) s += x * y; }); return s / (norms[i] * norms[j]); };
+  const oc = rubric.criteria.find(c => /독창|창의|참신|original|creativ/i.test(c.name));
+  const raw = rows.map((r, i) => {
+    const sims = rows.map((_, j) => j === i ? null : cos(i, j)).filter(x => x != null);
+    const distinct = 1 - sims.reduce((a, b) => a + b, 0) / sims.length;
+    const uniq = [...docs[i]].filter(([t]) => df.get(t) === 1).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    const rare = [...vec[i]].sort((a, b) => b[1] - a[1]).map(x => x[0]).filter(t => !uniq.includes(t));
+    const op = oc && r.result.scores[oc.id] != null ? r.result.scores[oc.id] / oc.max : null;
+    return { r, distinct, uniq, terms: [...uniq, ...rare].slice(0, 5), op };
+  });
+  const ds = raw.map(x => x.distinct), lo = Math.min(...ds), hi = Math.max(...ds);
+  raw.forEach(x => {
+    const d = hi > lo ? (x.distinct - lo) / (hi - lo) * 100 : 50;
+    const q100 = totalOf(x.r.result) / maxOf(x.r.result) * 100;
+    x.score = Math.round(x.op != null ? d * .5 + x.op * 100 * .3 + q100 * .2 : d * .65 + q100 * .35);
+    const q = t => `‘${t}’`;
+    x.reason = (x.uniq.length ? `다른 학생 글에 없는 ${x.uniq.slice(0, 3).map(q).join(', ')}을(를) 중심으로 논지를 펼쳤습니다.`
+      : `공통 주제를 ${x.terms.slice(0, 3).map(q).join(', ')}의 시각에서 풀어냈습니다.`) + (x.op != null ? ` (${oc.name} ${fmt(x.r.result.scores[oc.id])}/${fmt(oc.max)}점)` : '');
+  });
+  return { list: raw.sort((a, b) => b.score - a.score), oc };
+}
+let origAI = null; // { sig, items: [{ uid, angle, reason, score }] }
+const gradedSig = rows => rows.map(r => r.uid + ':' + totalOf(r.result)).sort().join('|');
+function renderOriginality(rows) {
+  const list = $('origList');
+  if (rows.length < 2) {
+    list.innerHTML = '<p class="sm:col-span-2 xl:col-span-5 text-xs text-mute text-center py-6">채점한 학생이 2명 이상이면 서로 비교해 독창적인 관점을 찾습니다.</p>';
+    $('origMode').textContent = '';
+    return;
+  }
+  const { list: rank, oc } = originality(rows);
+  const ai = origAI && origAI.sig === gradedSig(rows) ? origAI.items : null;
+  const items = ai ? ai.map(a => ({ ...rank.find(x => x.r.uid === a.uid), angle: a.angle, reason: a.reason, score: a.score })).filter(x => x.r)
+    : rank.slice(0, 5).map(x => ({ ...x, angle: x.r.result.claim }));
+  $('origMode').textContent = ai ? `AI 심층 분석 · ${PROVIDERS[provider].name} — 문제 설정·논거·결론의 차별성 기준`
+    : `규칙 분석 — 반 전체와 다른 단어·논점(TF-IDF)${oc ? ` + ${oc.name} 영역 점수` : ''} + 총점 · 키가 있으면 AI로 더 정확히 분석합니다`;
+  list.innerHTML = items.slice(0, 5).map((x, i) => `
+    <article class="glass rounded-[1.4rem] p-4 min-w-0 flex flex-col">
+      <div class="flex items-center justify-between gap-2"><span class="font-disp text-2xl font-semibold">#${i + 1}</span>
+        <span class="glass-info rounded-full px-2 py-0.5 text-[10px] font-bold font-disp">독창성 ${x.score}</span></div>
+      <p class="mt-2 text-xs font-bold truncate">${esc(x.r.name || x.r.file)} <span class="text-mute font-normal font-disp">${esc(x.r.sid)}</span></p>
+      <p class="mt-2 text-sm leading-6 font-medium break-words">“${esc(x.angle || '핵심 주장 없음')}”</p>
+      <p class="mt-2 text-[11px] text-mute leading-5 break-words">${esc(x.reason)}</p>
+      <p class="mt-auto pt-3 flex flex-wrap gap-1">${(x.terms || []).slice(0, 4).map(t => `<span class="glass-chip rounded-full px-2 py-0.5 text-[10px]">#${esc(t)}</span>`).join('')}</p>
+      <div class="bar mt-3" aria-hidden="true"><i style="width:${clamp(x.score, 0, 100)}%"></i></div>
+    </article>`).join('');
+}
+$('origAI').onclick = async () => {
+  const rows = graded();
+  const note = $('origNote');
+  if (rows.length < 2) { note.textContent = '채점한 학생이 2명 이상이어야 합니다.'; return; }
+  if (!aiKey()) { note.textContent = 'AI SETTING에 API 키를 입력하면 AI가 학생들의 관점을 서로 비교해 고릅니다. 지금은 규칙 분석 결과를 보여 줍니다.'; return; }
+  const btn = $('origAI');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>분석 중';
+  try {
+    const list = rows.slice(0, 80);
+    const prompt = `당신은 대학 글쓰기 교수입니다. 같은 과제를 받은 학생 레포트들을 서로 비교해, 가장 독창적인 관점 5개를 고르세요(학생이 5명 미만이면 전원 순위).
+독창성 = 다른 학생과 차별되는 문제 설정, 논거, 사례, 결론. 단순히 글이 길거나 잘 쓴 것이 아니라 "관점이 새로운가"를 보세요.
+과제: ${course.title || '(미입력)'} — ${course.desc || ''}
+angle은 그 학생 관점을 한 문장으로, reason은 다른 학생들과 무엇이 다른지 1~2문장으로 긍정적인 어조로 ${LANGS[lang]}로 쓰세요. score는 0~100.
+다른 설명 없이 JSON만 출력하세요: {"top":[{"index":0,"angle":"","reason":"","score":0}]}
+
+${list.map((r, i) => `[${i}] ${r.sid || ''} ${r.name || ''}\n핵심 주장: ${r.result.claim || ''}\n키워드: ${(r.result.keywords || []).join(', ')}\n본문 앞부분: ${r.text.slice(0, 600).replace(/\s+/g, ' ')}`).join('\n\n')}`;
+    const items = await askJSON(prompt, d => {
+      if (!Array.isArray(d.top) || !d.top.length) throw new Error('"top" 배열이 없습니다');
+      const out = d.top.map(t => ({ uid: list[Number(t.index)]?.uid, angle: str(t.angle), reason: str(t.reason), score: clamp(Math.round(Number(t.score) || 0), 0, 100) })).filter(t => t.uid);
+      if (!out.length) throw new Error('학생 번호(index)가 올바르지 않습니다');
+      return out.slice(0, 5);
+    });
+    origAI = { sig: gradedSig(rows), items };
+    renderOriginality(rows);
+    note.textContent = '✔ AI가 학생들의 관점을 비교해 골랐습니다. 점수·피드백이 바뀌면 규칙 분석으로 돌아갑니다.';
+  } catch (err) {
+    note.textContent = '✘ ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'AI로 독창성 심층 분석 ✦';
+  }
+};
+// ---------- 표절·유사도 경고: 5글자 조각(shingle) 겹침 비율 ----------
+const simNorm = s => String(s || '').replace(/[^\p{L}\p{N}]/gu, '');
+function shingles(text, k = 5) {
+  const t = simNorm(text), set = new Set();
+  for (let i = 0; i + k <= t.length; i++) set.add(t.slice(i, i + k));
+  return set;
+}
+const sentencesOf = text => String(text || '').split(/(?<=[.!?。！？])\s+|\n+/).map(s => s.trim()).filter(s => simNorm(s).length >= 12);
+function overlap(a, b) { let n = 0; const [s, l] = a.size <= b.size ? [a, b] : [b, a]; s.forEach(x => { if (l.has(x)) n++; }); return s.size ? n / s.size : 0; }
+let simPairs = [];
+function computeSimilarity() {
+  const rows = batchRows.filter(r => simNorm(r.text).length >= 50);
+  const sh = rows.map(r => shingles(r.text));
+  const sents = rows.map(r => sentencesOf(r.text).map(s => ({ s, sh: shingles(s, 4) })));
+  const pairs = [];
+  for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) {
+    const sim = overlap(sh[i], sh[j]);
+    if (sim < 0.12) continue;
+    // 거의 같은 문장 쌍(4글자 조각 70% 이상 겹침)
+    const common = [];
+    sents[i].forEach(a => { const m = sents[j].find(b => overlap(a.sh, b.sh) >= .7); if (m) common.push([a.s, m.s]); });
+    pairs.push({ a: rows[i], b: rows[j], sim, common });
+  }
+  simPairs = pairs.sort((x, y) => y.sim - x.sim);
+}
+const simLevel = s => s >= .6 ? ['높음', 'glass-ng'] : s >= .35 ? ['주의', 'glass-info'] : ['낮음', 'glass-chip'];
+const who = r => `${esc(r.name || r.file)} <span class="text-mute font-disp">${esc(r.sid)}</span>`;
+function flaggedUids() {
+  const th = Number($('simTh').value) / 100, set = new Set();
+  simPairs.filter(p => p.sim >= th).forEach(p => { set.add(p.a.uid); set.add(p.b.uid); });
+  return set;
+}
+function renderSimilarity() {
+  const th = Number($('simTh').value) / 100;
+  $('simThLabel').textContent = Math.round(th * 100) + '%';
+  const hits = simPairs.filter(p => p.sim >= th);
+  const n = batchRows.filter(r => simNorm(r.text).length >= 50).length;
+  $('simSummary').innerHTML = n < 2 ? '<span class="text-mute">학생 글이 2편 이상이면 비교합니다.</span>'
+    : hits.length ? `<span class="glass-ng rounded-full px-3 py-1 font-bold">⚠ 기준 ${Math.round(th * 100)}% 이상 ${hits.length}쌍</span> <span class="text-mute ml-1">${n}편 · ${n * (n - 1) / 2}쌍 비교 · 최고 ${Math.round(simPairs[0].sim * 100)}%</span>`
+    : `<span class="glass-ok rounded-full px-3 py-1 font-bold">✔ 기준 ${Math.round(th * 100)}% 이상인 쌍이 없습니다</span> <span class="text-mute ml-1">${n}편 · ${n * (n - 1) / 2}쌍 비교${simPairs[0] ? ` · 최고 ${Math.round(simPairs[0].sim * 100)}%` : ''}</span>`;
+  const show = hits.length ? hits : simPairs.slice(0, 3);
+  $('simBody').innerHTML = show.length ? show.map((p, i) => {
+    const [lv, cls] = simLevel(p.sim);
+    return `<tr><td class="whitespace-nowrap">${who(p.a)}</td><td class="whitespace-nowrap">${who(p.b)}</td>
+      <td class="text-center whitespace-nowrap"><span class="${cls} rounded-full px-2 py-0.5 text-[10px] font-bold">${lv}</span> <b class="font-disp">${Math.round(p.sim * 100)}%</b></td>
+      <td class="text-center font-disp">${p.common.length}</td>
+      <td class="min-w-[14rem] max-w-[26rem]"><p class="line-clamp-2 leading-5 text-[11px]">${p.common[0] ? esc(p.common[0][0]) : '<span class="text-mute">—</span>'}</p></td>
+      <td class="text-center"><button type="button" data-sim="${simPairs.indexOf(p)}" class="pill px-2.5 py-1 text-[11px]">비교 ⇆</button></td></tr>`;
+  }).join('') + (hits.length ? '' : '<tr><td colspan="6" class="text-center text-[10px] text-mute">기준 미만 — 참고로 가장 비슷한 쌍을 보여 줍니다</td></tr>')
+    : '<tr><td colspan="6" class="text-center text-mute py-4">비교할 쌍이 없습니다</td></tr>';
+}
+$('simTh').addEventListener('input', () => {
+  $('simTh').style.setProperty('--fill', (($('simTh').value - 15) / 65 * 100) + '%');
+  renderSimilarity(); renderBatchTable();
+});
+$('simBody').addEventListener('click', e => {
+  const b = e.target.closest('[data-sim]');
+  if (!b) return;
+  const p = simPairs[b.dataset.sim];
+  const mark = (text, list) => {
+    let html = esc(text);
+    [...new Set(list)].sort((x, y) => y.length - x.length).forEach(s => { html = html.split(esc(s)).join(`<mark class="rounded px-0.5 bg-[rgba(208,84,74,.18)]">${esc(s)}</mark>`); });
+    return html;
+  };
+  $('simTitle').textContent = `유사도 ${Math.round(p.sim * 100)}% · 거의 같은 문장 ${p.common.length}개`;
+  $('simNameA').innerHTML = who(p.a); $('simNameB').innerHTML = who(p.b);
+  $('simTextA').innerHTML = mark(p.a.text, p.common.map(c => c[0]));
+  $('simTextB').innerHTML = mark(p.b.text, p.common.map(c => c[1]));
+  openModal('simModal');
+});
+
+// ---------- AI 점수 vs 교수 점수 ----------
+function renderCompare() {
+  const crit = rubric.criteria;
+  const rows = graded().filter(r => r.ai && crit.some(c => r.edits?.scores?.[c.id]));
+  const diffs = crit.map(c => { const v = rows.filter(r => r.edits.scores?.[c.id] || r.ai.scores[c.id] != null).map(r => (r.result.scores[c.id] ?? 0) - (r.ai.scores[c.id] ?? 0)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0; });
+  const all = rows.flatMap(r => crit.map(c => Math.abs((r.result.scores[c.id] ?? 0) - (r.ai.scores[c.id] ?? 0))));
+  const mae = all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
+  const tdiff = rows.map(r => totalOf(r.result) - totalOf(r.ai));
+  const agree = all.length ? all.filter(d => d < 0.5).length / all.length * 100 : 0;
+  const tile = (k, v, s = '') => `<div class="glass-chip rounded-2xl px-4 py-3 min-w-0"><p class="text-[10px] text-mute">${k}</p><p class="font-disp text-xl font-semibold truncate">${v}<span class="text-xs font-medium text-mute ml-0.5">${s}</span></p></div>`;
+  $('cmpStats').innerHTML = tile('교수가 점수를 고친 학생', rows.length, ` / ${graded().length}명`) + tile('영역 점수 평균 절대 차이', rows.length ? fmt(mae) : '—', '점') +
+    tile('AI와 같은 점수 비율', rows.length ? Math.round(agree) : '—', '%') + tile('총점 평균 변화', rows.length ? (tdiff.reduce((a, b) => a + b, 0) / rows.length > 0 ? '+' : '') + fmt(tdiff.reduce((a, b) => a + b, 0) / rows.length) : '—', '점');
+  $('cmpEmpty').classList.toggle('hidden', !!rows.length);
+  charts.cmp?.destroy();
+  charts.cmp = rows.length ? new Chart($('cCmp'), { type: 'bar', data: { labels: crit.map(c => c.name), datasets: [{ data: diffs.map(round1), backgroundColor: diffs.map(d => d >= 0 ? ACC : 'rgb(120,120,126)'), borderRadius: 6, maxBarThickness: 22 }] },
+    options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', animation: { duration: 400 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `교수 − AI = ${c.raw > 0 ? '+' : ''}${c.raw}점` } } },
+      scales: { x: { suggestedMin: -1, suggestedMax: 1, grid: { color: c => c.tick.value === 0 ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.06)' } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } } } }) : null;
+  // 해석: 가장 차이가 큰 영역
+  const k = diffs.reduce((m, d, i) => Math.abs(d) > Math.abs(diffs[m]) ? i : m, 0);
+  $('cmpInsight').innerHTML = rows.length && Math.abs(diffs[k]) >= 0.25
+    ? `💡 AI는 <b>${esc(crit[k].name)}</b>을(를) 교수보다 평균 <b>${fmt(Math.abs(diffs[k]))}점 ${diffs[k] > 0 ? '낮게(박하게)' : '높게(후하게)'}</b> 매겼습니다. 이 영역의 루브릭 설명·점수별 기준을 더 구체적으로 적으면 AI 채점이 교수 기준에 가까워집니다.`
+    : rows.length ? '💡 AI 점수와 교수 점수가 대체로 비슷합니다.' : '';
+  $('cmpHead').innerHTML = `<tr><th class="text-left">학생</th>${crit.map(c => `<th>${esc(c.name)}<span class="block text-[10px] font-normal">AI → 교수</span></th>`).join('')}<th>총점</th></tr>`;
+  $('cmpBody').innerHTML = rows.length ? rows.map(r => `<tr><td class="whitespace-nowrap">${who(r)}</td>
+    ${crit.map(c => { const a = r.ai.scores[c.id], p = r.result.scores[c.id], d = (p ?? 0) - (a ?? 0); return `<td class="text-center font-disp whitespace-nowrap">${Math.abs(d) < 0.05 ? `<span class="text-mute">${fmt(a)}</span>` : `${fmt(a)} → <b class="edited">${fmt(p)}</b> <span class="text-[10px] ${d > 0 ? 'text-[#2a6b3d]' : 'text-[#9a3027]'}">${d > 0 ? '+' : ''}${fmt(d)}</span>`}</td>`; }).join('')}
+    <td class="text-center font-disp whitespace-nowrap">${fmt(totalOf(r.ai))} → <b>${fmt(totalOf(r.result))}</b></td></tr>`).join('')
+    : `<tr><td colspan="${crit.length + 2}" class="text-center text-mute py-6">아직 비교할 학생이 없습니다</td></tr>`;
+}
+
+// ---------- 학생에게 보낼 종합 피드백 메일 초안 ----------
+let mailRow = null;
+function mailDraft(row) {
+  const res = row.result, crit = res.criteria, total = totalOf(res), max = maxOf(res), g = gradeOf(total / max * 100);
+  const byPct = [...crit].sort((a, b) => res.scores[b.id] / b.max - res.scores[a.id] / a.max);
+  const pct = c => res.scores[c.id] / c.max;
+  const good = byPct.slice(0, Math.min(2, crit.length));
+  // 더 좋아질 점: 만점이 아닌 영역 중 낮은 순 2개 (모두 만점이면 가장 낮은 1개)
+  const below = byPct.filter(c => pct(c) < 1 && !good.includes(c)).reverse();
+  const weak = (below.length ? below : byPct.filter(c => pct(c) < 1).reverse()).slice(0, 2);
+  const name = row.name || '학생', prof = course.prof ? `${course.prof} 교수` : '담당 교수';
+  const subject = `[${course.course || '수업'}] ${course.title || '과제'} 피드백 안내 — ${name} 님`;
+  const revs = (res.revisions || []).filter(r => r.status !== 'ignored').slice(0, 2);
+  const body = [
+    `${name} 님, 안녕하세요.`, `${course.course ? `「${course.course}」 ` : ''}${prof}입니다.`, '',
+    `「${course.title || '과제'}」를 성실히 제출해 주어 고맙습니다. 채점 결과와 피드백을 정리해 보냅니다.`, '',
+    `■ 총점: ${fmt(total)} / ${fmt(max)}점 (${g})`,
+    `■ 영역별 점수: ${crit.map(c => `${c.name} ${fmt(res.scores[c.id])}/${fmt(c.max)}`).join(' · ')}`, '',
+    '■ 잘한 점', ...good.map(c => `- ${c.name}: ${res.fb[c.id]?.strengths || '좋은 점이 돋보였습니다.'}`), '',
+    ...(weak.length ? ['■ 더 좋아질 점', ...weak.flatMap(c => [`- ${c.name}: ${res.fb[c.id]?.improvements || ''}`, `  → 제안: ${res.fb[c.id]?.suggestions || ''}`])]
+      : ['■ 더 좋아질 점', '- 모든 영역에서 만점을 받았습니다. 다음 글에서는 반론을 다루거나 새로운 자료를 더해 한 단계 더 깊이 있는 글에 도전해 보세요.']),
+    ...(revs.length ? ['', '■ 문장 다듬기 예시', ...revs.flatMap(r => [`- 수정 전: ${r.original}`, `  수정 후: ${r.revised}`])] : []),
+    ...(res.summary && !row.sample ? ['', '■ 총평', res.summary] : []), '',
+    '이번 피드백을 참고해 다음 글에서도 자신의 생각을 힘 있게 펼쳐 보기 바랍니다. 궁금한 점은 언제든 편하게 연락 주세요.', '',
+    `${prof} 드림`, '', '※ 이 피드백은 AI 분석을 참고하여 교수가 검토·작성한 것입니다.'
+  ].join('\n');
+  return { subject, body };
+}
+function openMail(row) {
+  mailRow = row;
+  const d = row.mail || mailDraft(row);
+  $('mailTitle').textContent = `${row.name || row.file} ${row.sid ? `(${row.sid})` : ''}`;
+  const list = sortedRows().filter(r => r.result), i = list.indexOf(row);
+  $('mailSub').textContent = `${i + 1} / ${list.length}명 · 총점 ${fmt(totalOf(row.result))} / ${fmt(maxOf(row.result))}${row.mail ? ' · 저장된 초안' : ' · 기본 초안'}`;
+  $('mailPrev').disabled = i <= 0; $('mailNext').disabled = i >= list.length - 1;
+  $('mailTo').value = row.email || '';
+  $('mailSubject').value = d.subject;
+  $('mailBody').value = d.body;
+  $('mailNote').textContent = '';
+  if ($('mailModal').classList.contains('hidden')) openModal('mailModal');
+}
+function keepMail() { if (!mailRow) return; mailRow.mail = { subject: $('mailSubject').value, body: $('mailBody').value }; mailRow.email = $('mailTo').value.trim(); }
+$('mailSave').onclick = () => { keepMail(); $('mailNote').textContent = '✔ 초안을 저장했습니다. "히스토리 저장"을 누르면 세트와 함께 보관됩니다.'; };
+$('mailRule').onclick = () => { const d = mailDraft(mailRow); $('mailSubject').value = d.subject; $('mailBody').value = d.body; $('mailNote').textContent = '기본 초안으로 다시 만들었습니다.'; };
+$('mailPrev').onclick = () => { keepMail(); const l = sortedRows().filter(r => r.result); openMail(l[l.indexOf(mailRow) - 1]); };
+$('mailNext').onclick = () => { keepMail(); const l = sortedRows().filter(r => r.result); openMail(l[l.indexOf(mailRow) + 1]); };
+$('mailCopy').onclick = async () => {
+  const text = `제목: ${$('mailSubject').value}\n\n${$('mailBody').value}`;
+  try { await navigator.clipboard.writeText(text); $('mailNote').textContent = '✔ 제목과 본문을 복사했습니다. 메일 쓰기 창에 붙여넣으세요.'; }
+  catch { $('mailBody').select(); document.execCommand('copy'); $('mailNote').textContent = '✔ 본문을 복사했습니다.'; }
+};
+$('mailOpen').onclick = () => {
+  keepMail();
+  const url = `mailto:${encodeURIComponent($('mailTo').value.trim())}?subject=${encodeURIComponent($('mailSubject').value)}&body=${encodeURIComponent($('mailBody').value)}`;
+  if (url.length > 1900) $('mailNote').textContent = '⚠ 본문이 길어 메일 앱에서 일부가 잘릴 수 있습니다. 잘리면 "복사"로 붙여넣으세요.';
+  location.href = url;
+};
+$('mailAI').onclick = async () => {
+  if (!aiKey()) { $('mailNote').textContent = 'AI SETTING에 API 키를 입력하면 학생 글에 맞춰 더 자연스럽게 다듬습니다.'; return; }
+  const btn = $('mailAI'), row = mailRow, res = row.result;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>다듬는 중';
+  try {
+    const prompt = `당신은 학생을 존중하는 대학 교수입니다. 아래 채점 결과로 학생에게 보낼 종합 피드백 메일을 ${LANGS[lang]}로 쓰세요.
+- 따뜻하고 구체적이며 긍정적·건설적인 어조. 점수만 나열하지 말고 잘한 점을 먼저 구체적으로 칭찬한 뒤, 가장 중요한 개선점 2가지와 다음 글에서 바로 해 볼 행동을 제안하세요.
+- 학생 글의 실제 표현이나 주장을 한두 군데 언급해 개인 맞춤 메일이 되게 하세요. 사실을 지어내지 마세요.
+- 총점과 영역별 점수는 그대로 쓰고, 끝에 "${course.prof ? course.prof + ' 교수' : '담당 교수'} 드림"으로 맺으세요. 본문은 12~22줄.
+다른 설명 없이 JSON만 출력하세요: {"subject":"","body":""}
+
+학생: ${row.name} (${row.sid}) / 과목: ${course.course} / 과제: ${course.title}
+총점: ${fmt(totalOf(res))}/${fmt(maxOf(res))}
+${res.criteria.map(c => `${c.name} ${fmt(res.scores[c.id])}/${fmt(c.max)} — 잘한 점: ${res.fb[c.id]?.strengths} / 개선점: ${res.fb[c.id]?.improvements} / 제안: ${res.fb[c.id]?.suggestions}`).join('\n')}
+총평: ${res.summary}
+핵심 주장: ${res.claim}
+학생 글 앞부분: ${row.text.slice(0, 1200)}
+
+참고용 기본 초안:
+${$('mailBody').value}`;
+    const d = await askJSON(prompt, x => { if (!str(x.subject) || !str(x.body)) throw new Error('"subject"·"body"가 비어 있습니다'); return { subject: str(x.subject), body: str(x.body) }; });
+    if (mailRow === row) { $('mailSubject').value = d.subject; $('mailBody').value = d.body; $('mailNote').textContent = '✔ AI가 다듬었습니다. 확인하고 고친 뒤 보내세요.'; }
+  } catch (err) { $('mailNote').textContent = '✘ ' + err.message; }
+  finally { btn.disabled = false; btn.textContent = 'AI로 다듬기 ✦'; }
+};
+$('bMailAll').onclick = () => {
+  const rows = sortedRows().filter(r => r.result);
+  if (!rows.length) return toast('채점한 학생이 없습니다.');
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = rows.map(r => { const d = r.mail || mailDraft(r); return [r.sid, r.name, r.email || '', d.subject, d.body].map(q).join(','); });
+  download('﻿' + [['학번', '성명', '이메일', '제목', '본문'].map(q).join(','), ...lines].join('\r\n'), `메일초안_${course.course || '과목'}_${stamp()}.csv`, 'text/csv');
+  toast(`메일 초안 ${rows.length}건을 CSV로 내려받았습니다(저장한 초안 우선).`);
+};
+
+let wcTimer;
+window.addEventListener('resize', () => { clearTimeout(wcTimer); wcTimer = setTimeout(() => { if (!$('batch').classList.contains('hidden')) drawWordCloud(graded()); }, 250); });
+
 $('bCsv').onclick = () => {
   const crit = rubric.criteria;
   const q = v => `"${String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
@@ -2315,6 +2855,7 @@ $('rowSave').onclick = () => {
 };
 document.querySelectorAll('[data-row-action]').forEach(b => b.onclick = () => {
   const act = b.dataset.rowAction, row = editRow;
+  if (act === 'mail') { closeModal('rowModal'); return openMail(row); }
   if (act === 'revert') {
     if (!row.ai || !confirm('이 학생의 점수·피드백을 AI 원래 값으로 되돌릴까요?')) return;
     row.result = clone(row.ai); row.edits = {};
