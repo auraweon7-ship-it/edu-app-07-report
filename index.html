@@ -67,6 +67,7 @@
   .pill-dark:active:not(:disabled) { background: var(--sunk); color: var(--ink); text-shadow: none; box-shadow: var(--press); }
   .pill-dark:disabled { background: var(--sunk); color: var(--mute); text-shadow: none; }
   .pill-danger:hover:not(:disabled) { color: #9a3027; }
+  .pill[aria-pressed="true"] { background: var(--sunk); box-shadow: var(--press); color: #1f4f9c; font-weight: 600; }
   /* 포커스 링은 항상 보이게 */
   .pill:focus-visible, .tab-btn:focus-visible, .switch:focus-visible, .lnk:focus-visible, summary:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 9999px; }
   a:focus-visible, [tabindex]:focus-visible { outline: none; box-shadow: var(--focus); }
@@ -228,6 +229,10 @@
             <input id="model" type="text" autocomplete="off" list="modelList" class="field flex-1 min-w-0 font-disp">
             <datalist id="modelList"></datalist>
             <button id="checkBtn" type="button" class="pill px-4 text-xs whitespace-nowrap">연결 확인</button>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="모델 빠른 선택">
+            <span id="modelPresets" class="contents"></span>
+            <button id="loadModels" type="button" class="pill px-2.5 py-0.5 text-[11px]" title="입력한 API 키로 쓸 수 있는 모델 목록을 불러옵니다">내 키로 목록 불러오기 ↻</button>
           </div>
           <div id="checkStatus" class="hidden mt-2 rounded-2xl px-3 py-2 text-xs" role="status"></div>
         </div>
@@ -627,6 +632,7 @@
 
 <script>
 // 화면·저장 파일에 표시되는 앱 버전. 수정할 때마다 올림: 새 기능 → 둘째 자리, 고침·디자인 → 셋째 자리
+// v1.4.0  모델 빠른 선택: 제공자별 모델 버튼(OpenAI GPT-5·GPT-4.1·GPT-4o·o 시리즈 등)과 "내 키로 목록 불러오기"
 // v1.3.0  STEP 5 수업 배포·성적 관리: 학생용 HTML·제출 파일(JSON), 결과지 HWPX·PDF, 교수 일괄 채점(마스터 테이블·차트·CSV),
 //         학생별 점수·피드백 직접 수정(수정 표시), FEEDBACK HISTORY(열기·HTML·수정·삭제)
 // v1.2.1  STEP 4 소프트 UI 통일(돌출 카드·음각 입력칸·pill 버튼·파란 포커스 링), 수정 비교 빨강 취소선/초록 밑줄, 안내 문구, 모바일 점검
@@ -634,7 +640,7 @@
 //         수정안 적용·무시와 본문 강조, 피드백 강도·언어, 재채점 비교 차트
 // v1.1.0  STEP 2 AI 연결(Claude·OpenAI·Gemini, 연결 확인·모델 제안), JSON 재요청, 키 저장 설정, COURSE INFO 저장·내보내기
 // v1.0.0  STEP 1 기본 골격: 에세이 입력·실시간 통계, 레이더 차트·영역별 피드백·문장 수정 카드, 샘플 모드, 루브릭 모달
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 const BOOT = window.__BOOT__ || null;
 const STUDENT = BOOT?.mode === 'student';
 // 학생용 HTML을 만들 원본: 스크립트가 화면을 바꾸기 전에 문서를 그대로 복사
@@ -650,10 +656,14 @@ const str = v => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 const PROVIDERS = {
-  claude: { name: 'Claude', model: 'claude-sonnet-5-5', placeholder: 'sk-ant-...' },
-  openai: { name: 'OpenAI', model: 'gpt-4.1', placeholder: 'sk-...' },
-  gemini: { name: 'Gemini', model: 'gemini-2.5-flash', placeholder: 'AIza...' }
+  claude: { name: 'Claude', model: 'claude-sonnet-5-5', placeholder: 'sk-ant-...',
+    presets: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'] },
+  openai: { name: 'OpenAI', model: 'gpt-4.1', placeholder: 'sk-...',
+    presets: ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o4-mini', 'o3'] },
+  gemini: { name: 'Gemini', model: 'gemini-2.5-flash', placeholder: 'AIza...',
+    presets: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'] }
 };
+const fetchedModels = { claude: [], openai: [], gemini: [] }; // "내 키로 목록 불러오기"로 받은 모델
 const keys = { claude: '', openai: '', gemini: '' };
 const models = Object.fromEntries(Object.entries(PROVIDERS).map(([k, p]) => [k, p.model]));
 let provider = 'claude';
@@ -893,15 +903,48 @@ function showProvider() {
   $('apiKey').value = keys[provider];
   $('model').value = models[provider];
   $('model').placeholder = p.model;
-  $('modelList').innerHTML = `<option value="${esc(p.model)}"></option>`;
+  $('modelList').innerHTML = [...new Set([...p.presets, ...fetchedModels[provider]])].map(id => `<option value="${esc(id)}"></option>`).join('');
+  renderModelPresets();
   updateMode();
 }
+// 모델 빠른 선택 버튼: 제공자별 추천 모델 + 키로 불러온 모델
+function renderModelPresets() {
+  const p = PROVIDERS[provider], cur = models[provider] || p.model;
+  const ids = [...new Set([...p.presets, ...fetchedModels[provider].slice(0, 12)])];
+  $('modelPresets').innerHTML = ids.map(id =>
+    `<button type="button" data-preset="${esc(id)}" aria-pressed="${id === cur}" class="pill px-2.5 py-0.5 text-[11px] font-disp">${esc(id)}${id === p.model ? ' (기본)' : ''}</button>`).join('');
+}
+$('modelPresets').addEventListener('click', e => {
+  const b = e.target.closest('[data-preset]');
+  if (!b) return;
+  $('model').value = b.dataset.preset;
+  $('model').dispatchEvent(new Event('input'));
+});
+$('loadModels').onclick = async () => {
+  const key = $('apiKey').value.trim(), name = PROVIDERS[provider].name;
+  if (!key) return setCheckStatus('info', `${name} API 키를 먼저 입력하면 그 키로 쓸 수 있는 모델 목록을 불러옵니다.`);
+  const btn = $('loadModels');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner !w-3 !h-3"></span>불러오는 중';
+  try {
+    const ids = await LISTERS[provider](key);
+    if (!ids.length) throw new Error('목록이 비어 있습니다(키 권한 확인)');
+    fetchedModels[provider] = ids.sort((a, b) => b.localeCompare(a));
+    showProvider();
+    setCheckStatus('ok', `✔ ${name} 모델 ${ids.length}개를 불러왔습니다. 버튼을 누르거나 모델 칸에서 고르세요.`);
+  } catch (err) {
+    setCheckStatus('fail', `✘ 모델 목록을 불러오지 못했습니다 — ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '내 키로 목록 불러오기 ↻';
+  }
+};
 document.querySelectorAll('input[name=provider]').forEach(r => {
   r.checked = r.value === provider;
   r.onchange = () => { provider = r.value; showProvider(); saveSettings(); };
 });
 $('apiKey').oninput = e => { keys[provider] = e.target.value.trim(); updateMode(); saveSettings(); };
-$('model').oninput = e => { models[provider] = e.target.value.trim(); updateMode(); saveSettings(); };
+$('model').oninput = e => { models[provider] = e.target.value.trim(); renderModelPresets(); updateMode(); saveSettings(); };
 $('toggleKey').onclick = () => {
   const show = $('apiKey').type === 'password';
   $('apiKey').type = show ? 'text' : 'password';
