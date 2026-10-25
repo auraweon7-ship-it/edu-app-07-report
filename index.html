@@ -385,13 +385,13 @@
       </div>
       <div class="glass rounded-2xl overflow-hidden">
         <table class="w-full text-xs table-fixed tbl">
-          <colgroup><col class="w-[4.9rem]"><col><col class="w-[2.4rem]"><col class="w-[2.3rem]"><col class="w-[2.5rem]"><col class="w-[2.3rem]"><col class="w-[2.3rem]"></colgroup>
+          <colgroup><col class="w-[4.9rem]"><col><col class="w-[2.4rem]"><col class="w-[2.3rem]"><col class="w-[2.9rem]"><col class="w-[2.3rem]"><col class="w-[2.3rem]"></colgroup>
           <thead><tr>
             <th scope="col" class="text-left !px-3">일시</th>
             <th scope="col" class="text-left !px-2 truncate">교과목 · 과제</th>
             <th scope="col" class="!px-1">인원</th>
             <th scope="col" class="!px-1">열기</th>
-            <th scope="col" class="!px-1">HTML</th>
+            <th scope="col" class="!px-1">보고서</th>
             <th scope="col" class="!px-1">수정</th>
             <th scope="col" class="!px-1">삭제</th>
           </tr></thead>
@@ -503,6 +503,7 @@
         <button id="bRun" type="button" class="pill pill-dark px-4 py-2 text-xs">일괄 채점 시작 ▶</button>
         <button id="bStop" type="button" class="pill px-4 py-2 text-xs hidden">중지 ■</button>
         <button id="bCsv" type="button" class="pill px-4 py-2 text-xs">CSV 다운로드 ↓</button>
+        <button id="bReport" type="button" class="pill px-4 py-2 text-xs" title="지금 목록으로 분석 결과 보고서 열기">분석 보고서 📊</button>
         <button id="bMailAll" type="button" class="pill px-4 py-2 text-xs" title="학생별 종합 피드백 메일 초안을 CSV로">메일 초안 전체 ↓</button>
         <button type="button" data-action="saveHistory" class="pill px-4 py-2 text-xs">히스토리 저장 ★</button>
         <button id="bClear" type="button" class="pill pill-danger px-4 py-2 text-xs">비우기</button>
@@ -766,10 +767,25 @@
   </div>
 </div>
 
+<!-- 분석 결과 보고서 뷰어 -->
+<div id="reportView" class="hidden fixed inset-0 z-[65] flex flex-col bg-[#ececeb]" role="dialog" aria-modal="true" aria-labelledby="repTitle">
+  <div class="glass !rounded-none !border-x-0 !border-t-0 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+    <p id="repTitle" class="text-sm font-bold min-w-0 truncate">📊 분석 결과 보고서</p>
+    <div class="flex flex-wrap gap-2">
+      <button id="repPrint" type="button" class="pill px-3 py-1.5 text-xs">인쇄 · PDF ⎙</button>
+      <button id="repSave" type="button" class="pill px-3 py-1.5 text-xs">HTML 저장 ↓</button>
+      <button id="repTab" type="button" class="pill px-3 py-1.5 text-xs">새 탭 ↗</button>
+      <button id="repClose" type="button" class="pill pill-dark px-4 py-1.5 text-xs">닫기 ×</button>
+    </div>
+  </div>
+  <iframe id="repFrame" title="분석 결과 보고서" class="flex-1 w-full border-0 bg-[#ececeb]"></iframe>
+</div>
+
 <div id="toast" class="hidden fixed z-[70] bottom-5 left-1/2 -translate-x-1/2 glass rounded-full px-5 py-2.5 text-xs font-medium max-w-[calc(100%-2rem)] text-center" role="status"></div>
 
 <script>
 // 화면·저장 파일에 표시되는 앱 버전. 수정할 때마다 올림: 새 기능 → 둘째 자리, 고침·디자인 → 셋째 자리
+// v1.8.0  분석 결과 보고서: FEEDBACK HISTORY의 HTML 열 → 세트별 보고서 보기(요약·인사이트·차트·영역별 분석·키워드·독창성·유사도·AI 비교·학생표·루브릭, 인쇄/PDF·HTML 저장), 일괄 채점 툴바에도 버튼
 // v1.7.0  AI 점수 vs 교수 점수 비교(영역별 평균 차이·일치율·학생별 표), 표절·유사도 경고(5글자 조각 겹침·같은 문장 비교 창), 학생별 종합 피드백 메일 초안(기본·AI 다듬기·복사·메일 앱·CSV)
 // v1.6.0  일괄 채점 심화 분석: 키워드 워드클라우드, 과제 조건 충족률, 글 길이×총점(상관), 영역별 점수 구간, 영역 간 상관·학생×영역 히트맵, 독창적 관점 TOP 5(규칙·AI)
 // v1.5.0  한글(HWPX) 파일 읽기: 레포트 입력·일괄 채점·루브릭 자동 입력에서 .hwpx 지원(.hwp는 HWPX로 저장 안내)
@@ -781,7 +797,7 @@
 //         수정안 적용·무시와 본문 강조, 피드백 강도·언어, 재채점 비교 차트
 // v1.1.0  STEP 2 AI 연결(Claude·OpenAI·Gemini, 연결 확인·모델 제안), JSON 재요청, 키 저장 설정, COURSE INFO 저장·내보내기
 // v1.0.0  STEP 1 기본 골격: 에세이 입력·실시간 통계, 레이더 차트·영역별 피드백·문장 수정 카드, 샘플 모드, 루브릭 모달
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.8.0';
 const BOOT = window.__BOOT__ || null;
 const STUDENT = BOOT?.mode === 'student';
 // 학생용 HTML을 만들 원본: 스크립트가 화면을 바꾸기 전에 문서를 그대로 복사
@@ -2924,7 +2940,7 @@ function renderHistory() {
       <td class="font-disp text-[11px] !px-3 leading-4">${d.getFullYear() % 100}.${p(d.getMonth() + 1)}.${p(d.getDate())}<span class="block text-mute">${p(d.getHours())}:${p(d.getMinutes())}</span></td>
       <td class="!px-2 min-w-0"><p class="truncate font-bold">${esc(h.course.course) || '—'}</p><p class="truncate text-[10px] text-mute">${esc(h.course.title) || '과제명 없음'} · ${h.rubric.criteria.length}영역</p></td>
       <td class="text-center font-disp !px-1">${n}</td>
-      ${icon('open', '열기', '↗')}${icon('html', '학생용 HTML 다운로드', '↓')}${icon('edit', '수정', '✎')}${icon('del', '삭제', '×', 'pill-danger')}
+      ${icon('open', '열기', '↗')}${icon('report', '분석 결과 보고서 보기', '📊')}${icon('edit', '수정', '✎')}${icon('del', '삭제', '×', 'pill-danger')}
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="text-center text-mute py-5">저장한 채점 세트가 없습니다. 루브릭·과제를 정한 뒤 "히스토리 저장"을 누르세요.</td></tr>';
 }
@@ -2939,8 +2955,8 @@ $('historyBody').addEventListener('click', e => {
     loadSet(h);
     $('historyNote').textContent = `↗ "${name}" 세트를 열었습니다.`;
     (h.rows?.length ? $('batch') : $('rubricList')).scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else if (b.dataset.h === 'html') {
-    download(buildStudentHTML(h), `학생용_${h.course.course || '과목'}_${h.course.title || '과제'}.html`);
+  } else if (b.dataset.h === 'report') {
+    showReport(h);
   } else if (b.dataset.h === 'edit') {
     if (batchRows.length && !confirm('지금 불러온 일괄 채점 목록을 이 세트로 바꿀까요?')) return;
     loadSet(h);
@@ -2955,6 +2971,208 @@ $('historyBody').addEventListener('click', e => {
     renderHistory();
   }
 });
+
+// ---------- 분석 결과 보고서: 채점 세트 하나를 독립 HTML 보고서로 (요약·인사이트·차트·표·유사도·AI 비교·독창적 관점) ----------
+function buildReportHTML(h) {
+  // 분석 함수들이 쓰는 현재 루브릭·학생 목록을 잠시 이 세트로 바꿔 계산
+  const keep = { rubric, batchRows, simPairs };
+  rubric = validRubric(h.rubric) || rubric;
+  batchRows = clone(h.rows || []);
+  try { return reportHTML(h); } finally { rubric = keep.rubric; batchRows = keep.batchRows; simPairs = keep.simPairs; }
+}
+function reportHTML(h) {
+  const c = h.course, crit = rubric.criteria, mx = rubricMax();
+  const rows = sortedRows().filter(r => r.result), n = rows.length;
+  const mean = v => v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+  const sdv = v => { const m = mean(v); return v.length ? Math.sqrt(mean(v.map(x => (x - m) ** 2))) : 0; };
+  const tot = rows.map(r => totalOf(r.result)), pcts = rows.map(r => totalOf(r.result) / maxOf(r.result) * 100);
+  const G = ['A', 'B', 'C', 'D', 'F'], gc = G.map(g => pcts.filter(p => gradeOf(p) === g).length);
+  const cs = crit.map(cr => {
+    const v = rows.map(r => r.result.scores[cr.id]).filter(x => x != null);
+    return { cr, avg: mean(v), pct: v.length ? mean(v) / cr.max * 100 : 0, max: v.length ? Math.max(...v) : 0, min: v.length ? Math.min(...v) : 0, sd: sdv(v), good: v.length ? v.filter(x => x / cr.max >= .8).length / v.length * 100 : 0 };
+  });
+  const bins = Array(10).fill(0); pcts.forEach(p => bins[Math.min(9, Math.floor(p / 10))]++);
+  const band = p => p < 40 ? 0 : p < 60 ? 1 : p < 80 ? 2 : 3;
+  const bands = [0, 1, 2, 3].map(b => crit.map(cr => { const v = rows.filter(r => r.result.scores[cr.id] != null); return v.length ? Math.round(v.filter(r => band(r.result.scores[cr.id] / cr.max * 100) === b).length / v.length * 100) : 0; }));
+  const pts = rows.map(r => ({ x: [...r.text].length, y: round1(totalOf(r.result)), who: `${r.sid} ${r.name}` }));
+  const rr = pearson(pts.map(p => p.x), pts.map(p => p.y));
+  // 키워드
+  const freq = new Map(), df = new Map();
+  rows.forEach(r => { const kw = (r.result.keywords || []).flatMap(terms), seen = new Set(); [...terms(r.text), ...kw, ...kw].forEach(t => { freq.set(t, (freq.get(t) || 0) + 1); seen.add(t); }); seen.forEach(t => df.set(t, (df.get(t) || 0) + 1)); });
+  const words = [...freq].sort((a, b) => b[1] - a[1]).slice(0, 50), wMax = words[0]?.[1] || 1, wMin = words[words.length - 1]?.[1] || 0;
+  // 조건·유사도·AI 비교·독창성
+  const req = rubric.req, reqL = [...(req.minChars || req.maxChars ? ['글자 수'] : []), ...req.keywords.map(k => '#' + k)];
+  const reqR = reqL.map((_, i) => n ? Math.round(rows.filter(r => reqStatus(r.text)[i]?.ok).length / n * 100) : 0);
+  computeSimilarity();
+  const simHits = simPairs.filter(p => p.sim >= .35), flagged = new Set(simHits.flatMap(p => [p.a.uid, p.b.uid]));
+  const edited = rows.filter(r => r.ai && crit.some(cr => r.edits?.scores?.[cr.id]));
+  const cmpD = crit.map(cr => mean(edited.map(r => (r.result.scores[cr.id] ?? 0) - (r.ai.scores[cr.id] ?? 0))));
+  const orig = n >= 2 ? originality(rows).list.slice(0, 5) : [];
+  const isEdited = r => r.edits && (r.edits.summary || r.edits.claim || Object.values(r.edits.scores || {}).some(Boolean) || Object.values(r.edits.fb || {}).some(Boolean));
+  // 핵심 인사이트
+  const best = [...cs].sort((a, b) => b.pct - a.pct)[0], worst = [...cs].sort((a, b) => a.pct - b.pct)[0];
+  const ins = n ? [
+    `평균 <b>${fmt(mean(tot))} / ${fmt(mx)}점</b>(${Math.round(mean(pcts))}%), 표준편차 ${fmt(sdv(tot))}점입니다. 등급은 ${G.map((g, i) => `${g} ${gc[i]}명`).join(' · ')}.`,
+    crit.length > 1 ? `가장 강한 영역은 <b>${esc(best.cr.name)}</b>(평균 ${Math.round(best.pct)}%), 가장 보완이 필요한 영역은 <b>${esc(worst.cr.name)}</b>(평균 ${Math.round(worst.pct)}%)입니다. 다음 수업에서 ${esc(worst.cr.name)}을(를) 집중적으로 다루면 효과적입니다.` : '',
+    rr != null ? `글 길이와 총점의 상관은 r = ${rr.toFixed(2)}로 ${Math.abs(rr) >= .5 ? (rr > 0 ? '길게 쓴 글이 점수도 높은 경향이 뚜렷합니다' : '긴 글일수록 오히려 점수가 낮은 경향입니다') : '관계가 약합니다(분량보다 내용이 점수를 좌우)'}.` : '',
+    reqL.length ? `과제 조건 충족률은 ${reqL.map((l, i) => `${esc(l)} ${reqR[i]}%`).join(' · ')}입니다.` : '',
+    simHits.length ? `<span class="ngt">유사도 35% 이상 ${simHits.length}쌍</span>이 있습니다(최고 ${esc(simHits[0].a.name)}–${esc(simHits[0].b.name)} ${Math.round(simHits[0].sim * 100)}%). 원문을 직접 확인하세요.` : '학생 간 유사도 35% 이상인 글은 없습니다.',
+    edited.length ? (() => { const k = cmpD.reduce((m, d, i) => Math.abs(d) > Math.abs(cmpD[m]) ? i : m, 0); return `교수가 ${edited.length}명의 점수를 고쳤습니다. AI는 <b>${esc(crit[k].name)}</b>을(를) 교수보다 평균 ${fmt(Math.abs(cmpD[k]))}점 ${cmpD[k] > 0 ? '낮게' : '높게'} 매겼습니다.`; })() : '',
+    orig[0] ? `가장 독창적인 관점: <b>${esc(orig[0].r.name)}</b> — “${esc(orig[0].r.result.claim)}”` : ''
+  ].filter(Boolean) : ['채점한 학생이 없습니다. 일괄 채점 후 히스토리에 저장하면 분석이 채워집니다.'];
+
+  const tile = (k, v, s = '') => `<div class="tile"><p class="k">${k}</p><p class="v">${v}<small>${s}</small></p></div>`;
+  const D = { crit: crit.map(cr => cr.name), bins, binLabels: bins.map((_, i) => `${fmt(mx * i / 10)}~${fmt(mx * (i + 1) / 10)}`), G, gc,
+    avgPct: cs.map(x => round1(x.pct)), bands, pts, mx };
+  const S = '<' + '/script>';
+  const title = `${c.course || '과목'} · ${c.title || '과제'} — 분석 결과 보고서`;
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>${REPORT_CSS}</style></head><body><div class="wrap">
+<div class="actions"><button class="pill" onclick="print()">인쇄 · PDF ⎙</button><button class="pill dark" id="saveBtn">HTML 저장 ↓</button></div>
+<header class="card head"><div><p class="tiny">교수신문 AI 교육 웹앱 시리즈 · 07 AI 글쓰기·보고서 피드백</p><p class="logo">WRITELAB <span class="chip">${APP_VERSION}</span></p></div>
+<div class="right"><p class="tiny">생성 ${new Date().toLocaleString('ko-KR')}</p><p class="tiny">세트 저장 ${new Date(h.updatedAt || h.at || Date.now()).toLocaleString('ko-KR')}</p></div></header>
+<h1>${esc(c.title || '과제')} <span>분석 결과 보고서</span></h1>
+<table class="kv"><tr><th>대학</th><td>${esc(c.univ)}</td><th>학과</th><td>${esc(c.dept)}</td></tr><tr><th>교수</th><td>${esc(c.prof ? c.prof + ' 교수' : '')}</td><th>과목</th><td>${esc(c.course)}</td></tr></table>
+${c.desc ? `<p class="desc"><b>과제 설명</b> · ${esc(c.desc)}</p>` : ''}
+
+<div class="sec">📌 SUMMARY <small>—— 요약</small></div>
+<div class="grid tiles">${tile('채점 인원', n, ` / ${batchRows.length}명`)}${tile('평균', n ? fmt(mean(tot)) : '—', ` / ${fmt(mx)}`)}${tile('최고', n ? fmt(Math.max(...tot)) : '—')}${tile('최저', n ? fmt(Math.min(...tot)) : '—')}${tile('표준편차', n ? fmt(sdv(tot)) : '—')}${tile('평균 등급', n ? gradeOf(mean(pcts)) : '—')}</div>
+<div class="card ins"><p class="k" style="margin:0 0 6px">💡 핵심 인사이트</p><ul>${ins.map(x => `<li>${x}</li>`).join('')}</ul></div>
+
+<div class="sec">📊 DISTRIBUTION <small>—— 점수 분포 · 등급 · 영역</small></div>
+<div class="grid g3">
+<div class="card"><p class="ct">점수 분포</p><div class="cv"><canvas id="cHist"></canvas></div></div>
+<div class="card"><p class="ct">등급 비율</p><div class="cv"><canvas id="cGrade"></canvas></div></div>
+<div class="card"><p class="ct">영역별 평균 (배점 대비 %)</p><div class="cv"><canvas id="cAvg"></canvas></div></div>
+<div class="card"><p class="ct">영역별 점수 구간</p><div class="cv"><canvas id="cStack"></canvas></div></div>
+<div class="card"><p class="ct">글 길이 × 총점 ${rr != null ? `<small>r = ${rr.toFixed(2)}</small>` : ''}</p><div class="cv"><canvas id="cScatter"></canvas></div></div>
+<div class="card"><p class="ct">과제 조건 충족률</p>${reqL.length ? reqL.map((l, i) => `<div class="rq"><span>${esc(l)}</span><div class="bar"><i style="width:${reqR[i]}%"></i></div><b>${reqR[i]}%</b></div>`).join('') : '<p class="k">과제 조건 없음</p>'}</div>
+</div>
+
+<div class="sec">📐 BY CRITERION <small>—— 영역별 분석</small></div>
+<div class="card scroll"><table><thead><tr><th class="l">평가 영역</th><th>배점</th><th>가중치</th><th>평균</th><th>평균 %</th><th>최고</th><th>최저</th><th>표준편차</th><th>우수(80%+) 비율</th></tr></thead><tbody>
+${cs.map(x => `<tr><td class="l"><b>${esc(x.cr.name)}</b><br><span class="k">${esc(x.cr.desc)}</span></td><td>${fmt(x.cr.max)}</td><td>${fmt(x.cr.weight)}</td><td><b>${fmt(x.avg)}</b></td><td>${Math.round(x.pct)}%</td><td>${fmt(x.max)}</td><td>${fmt(x.min)}</td><td>${fmt(x.sd)}</td><td>${Math.round(x.good)}%</td></tr>`).join('')}</tbody></table></div>
+
+<div class="sec">☁️ KEYWORDS <small>—— 키워드 (크기 = 빈도 · 파랄수록 많은 학생이 사용)</small></div>
+<div class="card cloud">${words.length ? words.map(([t, f]) => { const s = Math.round(12 + ((f - wMin) / (wMax - wMin || 1)) ** .75 * 22), sh = df.get(t) / Math.max(n, 1); return `<span style="font-size:${s}px;font-weight:${s > 22 ? 700 : 500};color:${n > 1 && sh >= .6 ? 'rgb(47,123,246)' : n > 1 && sh >= .3 ? 'rgba(47,123,246,.7)' : df.get(t) > 1 ? '#64646b' : '#9a9aa0'}" title="${f}회 · 학생 ${df.get(t)}명">${esc(t)}</span>`; }).join(' ') : '<p class="k">키워드 없음</p>'}</div>
+
+<div class="sec">💡 ORIGINALITY <small>—— 가장 독창적인 관점 TOP 5 (반 전체와 다른 단어·논점 + 총점)</small></div>
+<div class="grid g5">${orig.length ? orig.map((x, i) => `<div class="card og"><p class="rank">#${i + 1} <span class="chip">독창성 ${x.score}</span></p><p><b>${esc(x.r.name)}</b> <span class="k">${esc(x.r.sid)}</span></p><p class="claim">“${esc(x.r.result.claim || '—')}”</p><p class="k">${esc(x.reason)}</p></div>`).join('') : '<p class="k">채점한 학생이 2명 이상일 때 분석합니다.</p>'}</div>
+
+<div class="sec">🚨 SIMILARITY <small>—— 유사도 35% 이상</small></div>
+<div class="card scroll">${simHits.length ? `<table><thead><tr><th class="l">학생 A</th><th class="l">학생 B</th><th>유사도</th><th>같은 문장</th><th class="l">겹친 문장 예시</th></tr></thead><tbody>${simHits.map(p => `<tr><td class="l">${esc(p.a.name)} <span class="k">${esc(p.a.sid)}</span></td><td class="l">${esc(p.b.name)} <span class="k">${esc(p.b.sid)}</span></td><td><b class="ngt">${Math.round(p.sim * 100)}%</b></td><td>${p.common.length}</td><td class="l">${esc(p.common[0]?.[0] || '—')}</td></tr>`).join('')}</tbody></table>
+<p class="k">같은 과제라 겹치는 표현도 있으니, 표절 판정은 원문을 비교해 교수가 직접 하세요.</p>` : '<p class="k" style="margin:0">✔ 유사도 35% 이상인 쌍이 없습니다.</p>'}</div>
+
+${edited.length ? `<div class="sec">⚖️ AI vs PROFESSOR <small>—— 교수가 점수를 고친 ${edited.length}명</small></div>
+<div class="card scroll"><table><thead><tr><th class="l">학생</th>${crit.map(cr => `<th>${esc(cr.name)}<br><small>AI → 교수</small></th>`).join('')}<th>총점</th></tr></thead><tbody>
+${edited.map(r => `<tr><td class="l">${esc(r.name)} <span class="k">${esc(r.sid)}</span></td>${crit.map(cr => { const a = r.ai.scores[cr.id], p = r.result.scores[cr.id]; return `<td>${Math.abs((p ?? 0) - (a ?? 0)) < .05 ? `<span class="k">${fmt(a)}</span>` : `${fmt(a)} → <b class="edited">${fmt(p)}</b>`}</td>`; }).join('')}<td>${fmt(totalOf(r.ai))} → <b>${fmt(totalOf(r.result))}</b></td></tr>`).join('')}
+<tr><th class="l">평균 차이 (교수 − AI)</th>${cmpD.map(d => `<th>${d > 0 ? '+' : ''}${fmt(d)}</th>`).join('')}<th></th></tr></tbody></table></div>` : ''}
+
+<div class="sec">🧑‍🎓 STUDENTS <small>—— 학생별 결과 (학번순)</small></div>
+<div class="card scroll"><table><thead><tr><th class="l">학번</th><th class="l">성명</th><th class="l">학과</th><th class="l">핵심 주장 · 키워드</th>${crit.map(cr => `<th>${esc(cr.name)}<br><small>/${fmt(cr.max)}</small></th>`).join('')}<th>총점</th><th>등급</th><th>비고</th></tr></thead><tbody>
+${rows.map(r => { const t = totalOf(r.result), m = maxOf(r.result); return `<tr><td class="l">${esc(r.sid)}</td><td class="l"><b>${esc(r.name)}</b></td><td class="l">${esc(r.dept)}</td><td class="l wide">${esc(r.result.claim)}<br><span class="k">${(r.result.keywords || []).map(k => '#' + esc(k)).join(' ')}</span></td>
+${crit.map(cr => `<td class="${r.edits?.scores?.[cr.id] ? 'edited' : ''}">${fmt(r.result.scores[cr.id])}</td>`).join('')}<td><b>${fmt(t)}</b></td><td>${gradeOf(t / m * 100)}</td>
+<td>${isEdited(r) ? '<span class="edited">교수 수정</span> ' : ''}${flagged.has(r.uid) ? '<span class="ngt">⚠ 유사</span>' : ''}</td></tr>`; }).join('') || `<tr><td colspan="${crit.length + 7}">채점 결과 없음</td></tr>`}</tbody></table></div>
+
+<div class="sec">📎 RUBRIC <small>—— 평가 기준 (총 ${fmt(mx)}점)</small></div>
+<div class="card scroll"><table><thead><tr><th class="l">영역</th><th>배점×가중치</th>${[1, 2, 3, 4, 5].map(k => `<th class="l">${k}수준</th>`).join('')}</tr></thead><tbody>
+${crit.map(cr => `<tr><td class="l"><b>${esc(cr.name)}</b><br><span class="k">${esc(cr.desc)}</span></td><td>${fmt(cr.max)}×${fmt(cr.weight)}</td>${cr.levels.map(l => `<td class="l k">${esc(l)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+
+<p class="note">ⓘ AI 평가는 참고 자료이며 최종 판단은 교수자가 합니다.</p>
+<footer>Copyright 2026 ⓒ Edu AI APP, All Rights Reserved. | 박정원 교수(한국외국어대학교 중국학대학)</footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">${S}
+<script>(${reportRuntime.toString()})(${JSON.stringify(D).replace(/</g, '\\u003c')}, ${JSON.stringify(`분석보고서_${c.course || '과목'}_${c.title || '과제'}.html`)});${S}
+</body></html>`;
+}
+// 보고서 안에서 실행되는 코드 (차트 그리기 · HTML 저장): 바깥 변수를 쓰지 않음
+function reportRuntime(D, fileName) {
+  // 앱 안 뷰어에서 열리면 뷰어 위쪽 버튼을 쓰므로 보고서 자체 버튼은 숨김
+  try { if (window.frameElement) document.querySelector('.actions').style.display = 'none'; } catch {}
+  document.getElementById('saveBtn').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['<!doctype html>\n' + document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' }));
+    a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+  };
+  if (!window.Chart) { document.querySelectorAll('.cv').forEach(e => e.innerHTML = '<p class="k">차트를 불러오지 못했습니다(인터넷 연결 확인)</p>'); return; }
+  Chart.defaults.font.family = 'Inter, "Noto Sans KR", sans-serif';
+  Chart.defaults.color = '#5e5e64';
+  const A = 'rgb(47,123,246)', AA = a => `rgba(47,123,246,${a})`, grid = { color: 'rgba(0,0,0,.06)' };
+  const base = { responsive: true, maintainAspectRatio: false, animation: false };
+  new Chart(document.getElementById('cHist'), { type: 'bar', data: { labels: D.binLabels, datasets: [{ data: D.bins, backgroundColor: AA(.75), borderRadius: 6, maxBarThickness: 26 }] },
+    options: { ...base, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 60 } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid } } } });
+  new Chart(document.getElementById('cGrade'), { type: 'doughnut', data: { labels: D.G.map((g, i) => `${g} (${D.gc[i]}명)`), datasets: [{ data: D.gc, backgroundColor: [A, AA(.55), 'rgb(176,176,182)', 'rgb(128,128,135)', 'rgb(76,76,82)'], borderColor: '#f1f1f0', borderWidth: 2 }] },
+    options: { ...base, cutout: '58%', plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } } } });
+  new Chart(document.getElementById('cAvg'), { type: 'radar', data: { labels: D.crit, datasets: [{ data: D.avgPct, borderColor: A, backgroundColor: AA(.16), pointBackgroundColor: A, borderWidth: 2 }] },
+    options: { ...base, plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { color: 'rgba(0,0,0,.09)' }, angleLines: { color: 'rgba(0,0,0,.09)' }, pointLabels: { font: { size: 10, weight: 600 }, color: '#1d1d1f' } } } } });
+  const BL = ['미흡 <40%', '보통 이하 40–59%', '보통 60–79%', '우수 80%+'], BC = ['rgb(76,76,82)', 'rgb(160,160,166)', AA(.5), A];
+  new Chart(document.getElementById('cStack'), { type: 'bar', data: { labels: D.crit, datasets: D.bands.map((d, i) => ({ label: BL[i], data: d, backgroundColor: BC[i], maxBarThickness: 20 })) },
+    options: { ...base, indexAxis: 'y', plugins: { legend: { position: 'bottom', labels: { boxWidth: 9, font: { size: 9 } } } }, scales: { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' }, grid }, y: { stacked: true, grid: { display: false } } } } });
+  new Chart(document.getElementById('cScatter'), { type: 'scatter', data: { datasets: [{ data: D.pts, backgroundColor: AA(.75), pointRadius: 5 }] },
+    options: { ...base, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw.who}: ${c.raw.x}자 · ${c.raw.y}점` } } },
+      scales: { x: { title: { display: true, text: '글자 수', font: { size: 10 } }, grid }, y: { min: 0, max: D.mx, title: { display: true, text: '총점', font: { size: 10 } }, grid } } } });
+}
+const REPORT_CSS = `:root{--bg:#ececeb;--face:#f1f1f0;--sunk:#e4e4e3;--ink:#1d1d1f;--mute:#77777d;
+--raise:0 10px 18px -8px rgba(0,0,0,.2),0 3px 0 -1px rgba(0,0,0,.06),inset 0 1px 0 #fff,inset 0 -2px 0 rgba(0,0,0,.05);
+--raise-sm:0 6px 10px -6px rgba(0,0,0,.22),0 2px 0 -1px rgba(0,0,0,.06),inset 0 1px 0 #fff,inset 0 -1.5px 0 rgba(0,0,0,.05);--press:inset 0 2px 5px rgba(0,0,0,.14),inset 0 -1px 0 rgba(255,255,255,.9)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.7 Inter,'Noto Sans KR','Malgun Gothic',sans-serif;overflow-x:hidden}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 48px}
+.card{background:var(--face);border:1px solid rgba(0,0,0,.04);box-shadow:var(--raise);border-radius:22px;padding:18px;min-width:0}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;border-radius:22px}
+.logo{margin:0;font:500 22px Inter;letter-spacing:.3em}.tiny{margin:0;font-size:11px;color:var(--mute)}.right{text-align:right}
+h1{font-size:clamp(22px,4vw,32px);margin:22px 0 10px;line-height:1.3}h1 span{display:block;font-size:.55em;color:var(--mute);font-weight:600;letter-spacing:.02em}
+.kv{width:100%;border-collapse:collapse;font-size:13px;background:var(--face);border-radius:16px;overflow:hidden;box-shadow:var(--raise-sm)}.kv th{width:12%}
+.desc{font-size:13px;margin:10px 0 0;color:#3a3a3f}
+.sec{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;padding-bottom:.6rem;border-bottom:1px solid rgba(0,0,0,.09);box-shadow:0 1px 0 #fff;font:600 13px Inter,'Noto Sans KR',sans-serif;letter-spacing:.04em;margin:30px 0 14px}
+.sec small{font-weight:500;color:var(--mute);letter-spacing:0}
+.grid{display:grid;gap:14px}.tiles{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:14px}.g3{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}.g5{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.tile{background:var(--face);box-shadow:var(--raise-sm);border-radius:16px;padding:10px 14px}.tile p{margin:0}.k{font-size:11px;color:var(--mute)}.v{font:600 22px Inter}.v small{font:500 12px Inter;color:var(--mute);margin-left:2px}
+.ct{margin:0 0 8px;font-size:12px;font-weight:700}.ct small{font-weight:500;color:var(--mute)}.cv{position:relative;height:240px}
+.ins ul{margin:0;padding-left:18px}.ins li{margin:4px 0;font-size:13px}
+.cloud{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:center;line-height:1.3}
+.og{display:flex;flex-direction:column;gap:4px}.og p{margin:0}.rank{font:600 22px Inter;display:flex;justify-content:space-between;align-items:center}.claim{font-size:13px;font-weight:500;line-height:1.6}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font:600 10px Inter;background:rgba(47,123,246,.08);border:1.5px solid rgba(47,123,246,.35);color:#1f4f9c;letter-spacing:0;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:12px}th{background:#e4e4e3;color:var(--mute);font-weight:600;padding:8px;white-space:nowrap}th small{font-weight:500}
+td{padding:7px 8px;border-top:1px solid rgba(0,0,0,.06);text-align:center;vertical-align:middle}td.l,th.l{text-align:left}td.wide{min-width:220px}
+.scroll{overflow-x:auto;padding:0}.scroll>p{padding:10px 16px;margin:0}
+.rq{display:grid;grid-template-columns:minmax(0,7rem) 1fr 3rem;gap:8px;align-items:center;font-size:12px;margin:8px 0}.rq b{text-align:right;font-family:Inter}
+.bar{height:8px;border-radius:99px;background:var(--sunk);box-shadow:var(--press);overflow:hidden}.bar i{display:block;height:100%;background:rgb(47,123,246)}
+.edited{color:#1f4f9c;font-weight:600}.ngt{color:#9a3027;font-weight:700}
+.actions{position:sticky;top:10px;z-index:5;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.pill{border-radius:999px;border:1px solid rgba(0,0,0,.05);background:var(--face);box-shadow:var(--raise-sm);padding:8px 16px;font:500 12px Inter,'Noto Sans KR',sans-serif;cursor:pointer;color:var(--ink)}
+.pill:hover{background:#e9e9e8}.pill:active{box-shadow:var(--press);background:var(--sunk)}.pill:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px rgb(47,123,246)}
+.dark{color:#fff;background:linear-gradient(180deg,#a0a0a7,#88888f)}.dark:hover{background:linear-gradient(180deg,#84848c,#6c6c74)}
+.note{text-align:center;font-size:11px;color:var(--mute);margin-top:26px}footer{text-align:center;font-size:11px;color:#5e5e64;margin-top:6px}
+@media print{@page{size:A4;margin:12mm}body{background:#fff}.actions{display:none}.card,.tile,.kv{box-shadow:none;border:1px solid #d4d4d8}.cv{height:210px}.card,.tile{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+$('bReport').onclick = () => showReport({ ...currentSet(), at: new Date().toISOString() });
+// 보고서는 앱 안 전체 화면 뷰어로 보여 줌 (새 창이 막힌 환경·파일로 연 경우에도 동작)
+let repHTML = '', repName = '', repFocus = null;
+function showReport(h) {
+  repHTML = buildReportHTML(h);
+  repName = `분석보고서_${h.course.course || '과목'}_${h.course.title || '과제'}.html`;
+  $('repTitle').textContent = `📊 ${[h.course.course, h.course.title].filter(Boolean).join(' · ') || '채점 세트'} — 분석 결과 보고서`;
+  $('repFrame').srcdoc = repHTML;
+  repFocus = document.activeElement;
+  $('reportView').classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  $('repClose').focus();
+}
+function closeReport() {
+  $('reportView').classList.add('hidden');
+  $('repFrame').srcdoc = '';
+  if (!document.querySelector('.modal:not(.hidden)')) document.body.classList.remove('modal-open');
+  repFocus?.focus?.();
+}
+$('repClose').onclick = closeReport;
+$('repPrint').onclick = () => { $('repFrame').contentWindow.focus(); $('repFrame').contentWindow.print(); };
+$('repSave').onclick = () => download(repHTML, repName);
+$('repTab').onclick = () => {
+  const url = URL.createObjectURL(new Blob([repHTML], { type: 'text/html;charset=utf-8' }));
+  if (!window.open(url, '_blank')) toast('새 탭이 막혀 있습니다. "HTML 저장"으로 내려받아 여세요.');
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('reportView').classList.contains('hidden') && !document.querySelector('.modal:not(.hidden)')) closeReport(); });
 
 // ---------- 학생용 HTML: 같은 앱을 학생 모드로 (루브릭·과제 설명 포함, 교수 전용 기능 숨김) ----------
 function buildStudentHTML(h = { id: uid(), course, rubric }) {
